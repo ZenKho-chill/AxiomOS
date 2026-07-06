@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `001-boot-and-kernel-entry.md` (Quá trình khởi động và điểm vào Kernel)
   - `002-serial-logging.md` (Hệ thống ghi log sớm qua cổng nối tiếp COM1)
 - Hoàn thiện nội dung Spec Kit cho các spec DRAFT `003` đến `010`, bao gồm mục tiêu, non-goals, dependency, interfaces, test plan và acceptance criteria.
+- Thêm framebuffer console tối thiểu để hiển thị boot sequence trong cửa sổ QEMU khi Limine cung cấp framebuffer hợp lệ.
+- Thêm feature test-only `panic-test` để kiểm chứng panic handler ghi ra framebuffer sau khi console sẵn sàng.
 
 ### Fixed
 - Sửa cấu hình Limine 7.x để entry AxiomOS dùng `PROTOCOL=limine` và `KERNEL_PATH=boot:///boot/kernel.elf`, tránh lỗi `[config file contains no valid entries]`.
@@ -29,3 +31,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Chuyển trạng thái specs `000-project-charter`, `001-boot-and-kernel-entry` và `002-serial-logging` sang `COMPLETE` sau khi acceptance criteria đã được xác minh.
+- Chuyển trạng thái spec `003-framebuffer-console` sang `COMPLETE` sau khi xác minh serial, screenshot QEMU và panic-test.

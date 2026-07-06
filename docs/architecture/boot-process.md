@@ -15,3 +15,6 @@ AxiomOS sử dụng bootloader Limine để khởi chạy hệ điều hành.
 
 4. **Kernel Entry**:
    Kernel nhận cấu hình bộ nhớ và thông tin phần cứng qua cấu trúc dữ liệu của Limine, khởi tạo COM1 serial port để bắt đầu in log chẩn đoán sớm.
+
+5. **Framebuffer Console**:
+   Nếu Limine cung cấp framebuffer RGB hợp lệ, kernel khởi tạo framebuffer console tối thiểu và mirror boot sequence lên màn hình QEMU. Nếu framebuffer không khả dụng, kernel tiếp tục boot bằng serial logging.

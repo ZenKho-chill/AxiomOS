@@ -15,7 +15,13 @@ mkdir -p target
 
 # 2. Biên dịch Kernel
 echo "[AXIOMOS] Biên dịch Kernel..."
+KERNEL_FEATURE_ARGS=()
+if [ -n "${KERNEL_FEATURES:-}" ]; then
+    KERNEL_FEATURE_ARGS=(--features "$KERNEL_FEATURES")
+fi
+
 cargo +nightly build --manifest-path kernel/Cargo.toml --target x86_64-unknown-none \
+    "${KERNEL_FEATURE_ARGS[@]}" \
     -Zbuild-std=core,compiler_builtins \
     -Zbuild-std-features=compiler-builtins-mem
 

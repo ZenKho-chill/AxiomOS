@@ -10,13 +10,14 @@ Tài liệu này xác định các cột mốc phát triển (Milestones) của 
 - [x] Viết và duyệt 3 Spec cốt lõi ban đầu (`000-project-charter`, `001-boot-and-kernel-entry`, `002-serial-logging`).
 - [x] Cấu trúc repository hoàn chỉnh.
 
-### Milestone 1: Kernel Có Thể Boot (Sắp tới)
-- [ ] Tải bootloader Limine và thiết lập cấu hình.
-- [ ] Điểm vào Kernel (`_start`) bằng Rust `no_std`, `no_main`.
-- [ ] Giao tiếp sớm qua Serial COM1 để in log.
-- [ ] Cơ chế xử lý Panic Kernel sơ khởi (Panic Handler) xuất ra Serial.
-- [ ] Viết script xây dựng đĩa ảo raw IMG và chạy thử nghiệm bằng QEMU.
-- [ ] Tích hợp kiểm thử tự động boot bằng QEMU trên CI.
+### Milestone 1: Kernel Có Thể Boot (Đang thực hiện)
+- [x] Tải bootloader Limine và thiết lập cấu hình.
+- [x] Điểm vào Kernel (`_start`) bằng Rust `no_std`, `no_main`.
+- [x] Giao tiếp sớm qua Serial COM1 để in log.
+- [x] Framebuffer console tối thiểu mirror boot sequence lên màn hình QEMU.
+- [x] Cơ chế xử lý Panic Kernel sơ khởi xuất ra Serial và framebuffer nếu sẵn sàng.
+- [x] Viết script xây dựng đĩa ảo raw IMG và chạy thử nghiệm bằng QEMU.
+- [x] Tích hợp kiểm thử tự động boot bằng QEMU trên CI.
 
 ### Milestone 2: Nền tảng CPU
 - [ ] Thiết lập Bảng mô tả phân đoạn toàn cục (GDT).

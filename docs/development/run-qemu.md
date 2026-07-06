@@ -49,6 +49,14 @@ qemu-system-x86_64 \
 [AXIOMOS] System halted
 ```
 
+## Framebuffer output kỳ vọng
+
+Khi chạy với cửa sổ QEMU/WSLg, framebuffer console tối thiểu sẽ mirror boot sequence lên màn hình QEMU. Dòng tối thiểu cần thấy là:
+
+```text
+[AXIOMOS] Kernel started
+```
+
 ## Kiểm thử headless trong WSL
 
 Khi cần kiểm tra log không mở cửa sổ QEMU, có thể chạy:
