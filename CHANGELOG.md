@@ -20,8 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `000-project-charter.md` (Hiến chương dự án)
   - `001-boot-and-kernel-entry.md` (Quá trình khởi động và điểm vào Kernel)
   - `002-serial-logging.md` (Hệ thống ghi log sớm qua cổng nối tiếp COM1)
+- Hoàn thiện nội dung Spec Kit cho các spec DRAFT `003` đến `010`, bao gồm mục tiêu, non-goals, dependency, interfaces, test plan và acceptance criteria.
 
 ### Fixed
 - Sửa cấu hình Limine 7.x để entry AxiomOS dùng `PROTOCOL=limine` và `KERNEL_PATH=boot:///boot/kernel.elf`, tránh lỗi `[config file contains no valid entries]`.
 - Sửa linker script để các `PT_LOAD` segment khác quyền không dùng chung một memory page khi Limine nạp kernel ELF.
 - Sửa serial boot sequence để khớp đúng các dòng log bắt buộc của Milestone 1.
+
+### Changed
+- Chuyển trạng thái specs `000-project-charter`, `001-boot-and-kernel-entry` và `002-serial-logging` sang `COMPLETE` sau khi acceptance criteria đã được xác minh.

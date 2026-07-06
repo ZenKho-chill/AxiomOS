@@ -2,7 +2,7 @@
 
 - **Feature ID**: 000-project-charter
 - **Tiêu đề**: Hiến chương dự án AxiomOS
-- **Trạng thái**: APPROVED
+- **Trạng thái**: COMPLETE
 - **Người phụ trách**: Kỹ sư trưởng AxiomOS
 - **Ngày tạo**: 2026-07-06
 - **Ngày cập nhật**: 2026-07-06
@@ -76,6 +76,14 @@ Xác định tầm nhìn, phạm vi, định hướng kiến trúc, và các quy
 ## Kế hoạch rollback hoặc removal
 
 - Không áp dụng.
+
+## Bằng chứng hoàn tất
+
+- Cấu trúc repository bắt buộc đã được kiểm tra và toàn bộ đường dẫn nền tảng tồn tại.
+- `userspace/Cargo.toml`, issue template `subsystem_propesal.md`, các thư mục kernel nền tảng và marker `.gitkeep` đã được bổ sung để repository khớp cấu trúc bắt buộc.
+- `cargo metadata --no-deps --format-version 1` chạy thành công trong WSL Ubuntu.
+- `make lint` chạy thành công trong WSL Ubuntu.
+- `make test` chạy thành công trong WSL Ubuntu.
 
 ## Câu hỏi mở
 

@@ -2,7 +2,7 @@
 
 - **Feature ID**: 002-serial-logging
 - **Tiêu đề**: Ghi log qua cổng nối tiếp COM1
-- **Trạng thái**: APPROVED
+- **Trạng thái**: COMPLETE
 - **Người phụ trách**: Kỹ sư trưởng AxiomOS
 - **Ngày tạo**: 2026-07-06
 - **Ngày cập nhật**: 2026-07-06
@@ -96,6 +96,17 @@ Khi phát triển hệ điều hành từ đầu, việc chẩn đoán và theo 
 
 - Không áp dụng.
 
+## Bằng chứng hoàn tất
+
+- Kernel khởi tạo COM1 qua module `drivers::serial`.
+- QEMU headless với serial file đã ghi đủ boot sequence.
+- Acceptance criterion đã được xác nhận bằng dòng serial bắt buộc:
+
+```text
+[AXIOMOS] Serial logger initialized
+```
+- Không còn `unwrap` hoặc `expect` trong kernel runtime path của serial logger.
+
 ## Câu hỏi mở
 
-- Có nên tự viết trực tiếp driver I/O port bằng assembly inline thay vì dùng crate `uart_16550` để giảm dependency không? (Quyết định: Sử dụng crate `uart_16550` hoặc viết mã I/O đơn giản tùy thuộc vào mức độ phức tạp).
+- Đã chốt dùng crate `uart_16550` cho COM1 polling logger ở milestone đầu.
