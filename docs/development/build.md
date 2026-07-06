@@ -25,3 +25,21 @@ Lệnh nhanh:
 ```bash
 make image
 ```
+
+## Cấu hình Limine v7
+
+Limine 7.x yêu cầu entry trong `assets/boot/limine.cfg` dùng cú pháp chữ hoa và nhãn bắt đầu bằng dấu `:`:
+
+```text
+TIMEOUT=5
+
+:AxiomOS
+    PROTOCOL=limine
+    KERNEL_PATH=boot:///boot/kernel.elf
+```
+
+Nếu dùng cú pháp cũ như `/AxiomOS`, `protocol:` hoặc `path:`, Limine sẽ báo `[config file contains no valid entries]`.
+
+## Linker script
+
+`kernel/linker.ld` tách `.text`, `.rodata/.requests` và `.data/.bss` thành các `PT_LOAD` segment riêng, căn theo page 4K. Cách này tránh lỗi Limine `Attempted to load ELF file with PHDRs with different permissions sharing the same memory page`.

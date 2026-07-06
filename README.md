@@ -60,6 +60,15 @@ axiomOS/
    sudo apt install -y build-essential qemu-system-x86 llvm clang mtools parted dosfstools git
    ```
 
+   Trên Windows, mở môi trường Ubuntu bằng:
+   ```powershell
+   wsl -d Ubuntu
+   ```
+   Sau đó di chuyển tới repository, ví dụ:
+   ```bash
+   cd "/mnt/d/Personal Project/AxiomOS"
+   ```
+
 2. **Cài đặt Rust toolchain**:
    Truy cập [rustup.rs](https://rustup.rs) và cài đặt phiên bản Rust stable mới nhất.
 
@@ -85,6 +94,13 @@ Hệ thống sử dụng `Makefile` để tự động hóa:
 - **Chạy thử trên giả lập QEMU**:
   ```bash
   make run
+  ```
+  Serial output kỳ vọng:
+  ```text
+  [AXIOMOS] Bootloader handoff complete
+  [AXIOMOS] Kernel started
+  [AXIOMOS] Serial logger initialized
+  [AXIOMOS] System halted
   ```
 - **Debug bằng GDB**:
   ```bash

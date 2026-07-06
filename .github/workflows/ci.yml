@@ -52,3 +52,58 @@ jobs:
 
       - name: Build Kernel
         run: cargo build --manifest-path kernel/Cargo.toml --target x86_64-unknown-none
+
+  boot-test:
+    name: Boot Test in QEMU
+    runs-on: ubuntu-latest
+    needs: [check-style, lint, build-kernel]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          targets: x86_64-unknown-none
+          components: rust-src
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y parted mtools dosfstools qemu-system-x86
+
+      - name: Clone Limine and compile host tool
+        run: |
+          git clone https://github.com/limine-bootloader/limine.git --branch=v7.x-binary --depth=1 limine-bin
+          mkdir -p assets/limine
+          cp limine-bin/BOOTX64.EFI limine-bin/limine-bios.sys assets/limine/
+          cd limine-bin
+          make
+          cp limine ../assets/limine/
+          cd ..
+          rm -rf limine-bin
+
+      - name: Build bootable image
+        run: |
+          chmod +x scripts/build-image.sh
+          ./scripts/build-image.sh
+
+      - name: Run QEMU and check serial output
+        run: |
+          qemu-system-x86_64 \
+            -drive format=raw,file=target/axiomOS.img \
+            -serial file:serial.log \
+            -display none \
+            -m 256M \
+            -no-reboot &
+          sleep 5
+          echo "=== NỘI DUNG SERIAL LOG ==="
+          cat serial.log
+          echo "==========================="
+          if grep -q "\[AXIOMOS\] Kernel started" serial.log; then
+            echo "Test boot thành công!"
+            exit 0
+          else
+            echo "Lỗi: Không tìm thấy chuỗi log khởi động của AxiomOS!"
+            exit 1
+          fi

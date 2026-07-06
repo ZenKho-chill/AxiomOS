@@ -31,3 +31,4 @@ lint:
 
 clean:
 	cargo clean
+	rm -f target/*.img

@@ -19,6 +19,18 @@ sudo apt update
 sudo apt install -y build-essential git qemu-system-x86 llvm clang mtools parted dosfstools curl
 ```
 
+Trên Windows, mở đúng distro Ubuntu trước khi chạy các lệnh build:
+
+```powershell
+wsl -d Ubuntu
+```
+
+Nếu repository nằm trên ổ D của Windows, đường dẫn trong WSL thường có dạng:
+
+```bash
+cd "/mnt/d/Personal Project/AxiomOS"
+```
+
 Các công cụ bao gồm:
 - `build-essential`: Makefile, gcc, các thư viện runtime cơ bản.
 - `qemu-system-x86`: Trình giả lập PC x86_64 để chạy OS.
@@ -57,4 +69,8 @@ Di chuyển vào thư mục dự án và chạy thử lệnh build:
 make build
 ```
 
-Nếu hệ thống báo chưa có kernel crate, đó là vì chúng ta chưa tạo kernel skeleton ở Milestone 0. Quá trình thiết lập này sẽ sẵn sàng ngay sau khi kernel skeleton được khởi tạo.
+Sau khi build thành công, tạo image bootable bằng:
+
+```bash
+make image
+```
