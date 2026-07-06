@@ -1,0 +1,10 @@
+[workspace]
+members = [
+    "kernel",
+    "userspace/init",
+    "userspace/shell",
+    "userspace/libc",
+    "tools/image-builder",
+    "tools/xtask",
+]
+resolver = "2"

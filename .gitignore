@@ -1,0 +1,12 @@
+/target
+/Cargo.lock
+*.img
+*.iso
+*.bin
+*.elf
+*.o
+*.d
+.DS_Store
+.vscode/
+.idea/
+.agents/

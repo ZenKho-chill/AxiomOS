@@ -1,0 +1,65 @@
+# Lộ trình Phát triển (Development Roadmap)
+
+Tài liệu này xác định các cột mốc phát triển (Milestones) của AxiomOS từ nền tảng đầu tiên cho đến một hệ thống userspace tối giản.
+
+## Các Milestone
+
+### Milestone 0: Nền tảng Repository (Hiện tại)
+- [x] Thiết lập Workspace Cargo.
+- [x] Cấu hình Formatting, Linting và Github CI.
+- [x] Viết và duyệt 3 Spec cốt lõi ban đầu (`000-project-charter`, `001-boot-and-kernel-entry`, `002-serial-logging`).
+- [x] Cấu trúc repository hoàn chỉnh.
+
+### Milestone 1: Kernel Có Thể Boot (Sắp tới)
+- [ ] Tải bootloader Limine và thiết lập cấu hình.
+- [ ] Điểm vào Kernel (`_start`) bằng Rust `no_std`, `no_main`.
+- [ ] Giao tiếp sớm qua Serial COM1 để in log.
+- [ ] Cơ chế xử lý Panic Kernel sơ khởi (Panic Handler) xuất ra Serial.
+- [ ] Viết script xây dựng đĩa ảo raw IMG và chạy thử nghiệm bằng QEMU.
+- [ ] Tích hợp kiểm thử tự động boot bằng QEMU trên CI.
+
+### Milestone 2: Nền tảng CPU
+- [ ] Thiết lập Bảng mô tả phân đoạn toàn cục (GDT).
+- [ ] Thiết lập Bảng mô tả ngắt (IDT).
+- [ ] Xử lý các CPU Exception cơ bản (như Page Fault, Double Fault).
+- [ ] Kích hoạt bộ điều khiển ngắt (APIC hoặc PIC) và Timer interrupt.
+- [ ] Driver bàn phím PS/2 cơ bản thông qua ngắt I/O.
+
+### Milestone 3: Nền tảng Quản lý Bộ nhớ
+- [ ] Phân tích bản đồ bộ nhớ (Memory Map) cung cấp từ Limine.
+- [ ] Trình quản lý khung trang vật lý (Physical Frame Allocator) dạng Bitmap hoặc Free List.
+- [ ] Ánh xạ bộ nhớ ảo (Virtual Memory Paging).
+- [ ] Trình cấp phát bộ nhớ Heap của Kernel (Kernel Heap Allocator).
+- [ ] Viết các chương trình chẩn đoán bộ nhớ.
+
+### Milestone 4: Dịch Vụ Kernel & Scheduler
+- [ ] Hệ thống ghi log có cấu trúc nâng cao.
+- [ ] Các thành phần đồng bộ hóa luồng cơ bản (Spinlock, Mutex).
+- [ ] Trình lập lịch tiến trình cộng tác (Cooperative Task Scheduler) cơ bản.
+- [ ] Đặc tả thiết kế trình lập lịch trưng dụng (Preemptive Scheduler).
+- [ ] Đồng hồ thời gian hệ thống (Timekeeping).
+
+### Milestone 5: Hệ thống Tệp tin & Lưu trữ
+- [ ] Lớp trừu tượng hóa thiết bị khối (Block Device Abstraction).
+- [ ] Trình đọc hệ thống tệp tin FAT32 Read-only.
+- [ ] Thiết kế Hệ thống tệp tin ảo (VFS).
+- [ ] API đọc tệp tin từ Kernel.
+
+### Milestone 6: Nạp Chương Trình & Userspace
+- [ ] Trình phân tích định dạng ELF64.
+- [ ] Trình nạp chương trình ELF64 (ELF64 Loader).
+- [ ] Không gian địa chỉ người dùng (Userspace Address Space).
+- [ ] Giao diện cuộc gọi hệ thống (Syscall ABI).
+- [ ] Tiến trình khởi tạo đầu tiên (`init`).
+
+### Milestone 7: Môi trường Userspace Tối giản
+- [ ] Tiến trình `init` chạy thành công ở chế độ User Mode (Ring 3).
+- [ ] Chương trình dòng lệnh `shell` cơ bản.
+- [ ] Hỗ trợ các lệnh cơ bản: liệt kê file (`ls`), đọc nội dung file (`cat`).
+- [ ] Thư viện chuẩn C tối giản cho userspace (`libc`).
+
+### Milestone 8: Nghiên Cứu Môi Trường Desktop
+- [ ] Đặc tả thiết kế cho bộ tổng hợp đồ họa (Compositor).
+- [ ] Nghiên cứu mô hình Window Server.
+- [ ] Thiết lập lớp trừu tượng hóa đầu vào đồ họa (Mouse/Keyboard).
+- [ ] Lựa chọn API đồ họa phù hợp (Framebuffer, GPU).

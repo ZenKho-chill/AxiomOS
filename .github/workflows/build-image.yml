@@ -1,0 +1,21 @@
+name: Build Image
+
+on:
+  workflow_run:
+    workflows: ["Continuous Integration"]
+    types:
+      - completed
+    branches: [ main ]
+
+jobs:
+  build-image:
+    name: Build Disk Image
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Skeleton: Các bước build image sẽ được bổ sung chi tiết ở Milestone 1
+      - name: Build placeholder
+        run: echo "Build image placeholder"
