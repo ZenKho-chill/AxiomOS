@@ -1,6 +1,8 @@
 #![no_std]
 #![no_main]
+#![feature(abi_x86_interrupt)]
 
+pub mod arch;
 pub mod boot;
 pub mod console;
 pub mod drivers;
@@ -27,6 +29,21 @@ pub extern "C" fn _start() -> ! {
         }
     } else {
         serial_println!("[AXIOMOS] Framebuffer console unavailable: no framebuffer");
+    }
+
+    // Khởi tạo IDT và PIC
+    // SAFETY: Các lệnh này thay đổi bảng ngắt của CPU ở mức đặc quyền Ring 0
+    unsafe {
+        arch::x86_64::idt::init();
+        boot_log("[AXIOMOS] IDT initialized");
+
+        drivers::pic::init();
+    }
+
+    // Kiểm chứng ngắt Breakpoint (int3)
+    // SAFETY: int3 kích hoạt breakpoint exception hợp lệ đã đăng ký handler trong IDT
+    unsafe {
+        core::arch::asm!("int3");
     }
 
     run_panic_test_if_requested();

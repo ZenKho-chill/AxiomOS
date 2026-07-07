@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hoàn thiện nội dung Spec Kit cho các spec DRAFT `003` đến `010`, bao gồm mục tiêu, non-goals, dependency, interfaces, test plan và acceptance criteria.
 - Thêm framebuffer console tối thiểu để hiển thị boot sequence trong cửa sổ QEMU khi Limine cung cấp framebuffer hợp lệ.
 - Thêm feature test-only `panic-test` để kiểm chứng panic handler ghi ra framebuffer sau khi console sẵn sàng.
+- Thêm hệ thống ngắt và ngoại lệ CPU (Spec 005) bao gồm Interrupt Descriptor Table (IDT), các handlers cho exceptions (Divide-by-zero, Breakpoint, Double Fault, General Protection Fault, Page Fault) và driver remap 8259 PIC.
+- Thêm tài liệu quyết định kiến trúc [adr-002-use-8259-pic.md](./docs/architecture/adr-002-use-8259-pic.md) giải thích việc lựa chọn bộ ngắt 8259 PIC thay vì APIC.
 
 ### Fixed
 - Sửa cấu hình Limine 7.x để entry AxiomOS dùng `PROTOCOL=limine` và `KERNEL_PATH=boot:///boot/kernel.elf`, tránh lỗi `[config file contains no valid entries]`.
@@ -34,3 +36,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Chuyển trạng thái specs `000-project-charter`, `001-boot-and-kernel-entry` và `002-serial-logging` sang `COMPLETE` sau khi acceptance criteria đã được xác minh.
 - Chuyển trạng thái spec `003-framebuffer-console` sang `COMPLETE` sau khi xác minh serial, screenshot QEMU và panic-test.
+- Chuyển trạng thái đặc tả `005-interrupts-and-exceptions` sang `COMPLETE` sau khi đã hiện thực hóa IDT/PIC và kiểm chứng thành công breakpoint exception (int3) trên local.
