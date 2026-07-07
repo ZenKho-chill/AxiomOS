@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Thêm trình lập lịch tiến trình cộng tác (Cooperative Scheduler) hỗ trợ chuyển đổi ngữ cảnh bằng Assembly x86_64, TCB và API yield_now().
+- Cập nhật Spec 009-process-scheduler sang trạng thái COMPLETE.
 - Thêm hệ thống quản lý thời gian (Timekeeping) hỗ trợ cấu hình PIT 1000Hz, API uptime_ms() và sleep_ms().
 - Cập nhật Spec 013-system-timekeeping sang trạng thái COMPLETE.
 - Thêm cơ chế lọc log động ở runtime và bộ đệm xoay vòng ring buffer tĩnh trong kernel cho Milestone 4.

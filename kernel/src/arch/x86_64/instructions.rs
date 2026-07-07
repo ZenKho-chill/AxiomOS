@@ -1,5 +1,11 @@
 //! Các lệnh CPU x86_64 mức thấp.
 
+#[cfg(test)]
+use core::sync::atomic::{AtomicBool, Ordering};
+
+#[cfg(test)]
+static MOCK_INTERRUPTS: AtomicBool = AtomicBool::new(false);
+
 /// Vô hiệu hóa ngắt trên CPU cục bộ.
 ///
 /// # Safety
@@ -13,9 +19,16 @@
 /// - CPU state assumptions: Cờ Interrupt Flag (IF) trong thanh ghi RFLAGS bị xóa (về 0).
 #[inline(always)]
 pub unsafe fn cli() {
-    // SAFETY: Thực hiện lệnh cli vô hiệu hóa ngắt yêu cầu Ring 0.
-    unsafe {
-        core::arch::asm!("cli", options(nomem, nostack, preserves_flags));
+    #[cfg(not(test))]
+    {
+        // SAFETY: Thực hiện lệnh cli vô hiệu hóa ngắt yêu cầu Ring 0.
+        unsafe {
+            core::arch::asm!("cli", options(nomem, nostack, preserves_flags));
+        }
+    }
+    #[cfg(test)]
+    {
+        MOCK_INTERRUPTS.store(false, Ordering::Relaxed);
     }
 }
 
@@ -31,9 +44,16 @@ pub unsafe fn cli() {
 /// - CPU state assumptions: Cờ Interrupt Flag (IF) trong thanh ghi RFLAGS được set (về 1).
 #[inline(always)]
 pub unsafe fn sti() {
-    // SAFETY: Thực hiện lệnh sti kích hoạt ngắt yêu cầu Ring 0 và IDT sẵn sàng.
-    unsafe {
-        core::arch::asm!("sti", options(nomem, nostack, preserves_flags));
+    #[cfg(not(test))]
+    {
+        // SAFETY: Thực hiện lệnh sti kích hoạt ngắt yêu cầu Ring 0 và IDT sẵn sàng.
+        unsafe {
+            core::arch::asm!("sti", options(nomem, nostack, preserves_flags));
+        }
+    }
+    #[cfg(test)]
+    {
+        MOCK_INTERRUPTS.store(true, Ordering::Relaxed);
     }
 }
 
@@ -48,12 +68,23 @@ pub unsafe fn sti() {
 /// - CPU state assumptions: Không thay đổi các cờ trạng thái của CPU.
 #[inline(always)]
 pub unsafe fn read_rflags() -> u64 {
-    let rflags: u64;
-    // SAFETY: Đọc cờ RFLAGS qua stack, an toàn và không gây tác động phụ.
-    unsafe {
-        core::arch::asm!("pushfq; pop {}", out(reg) rflags, options(nomem, preserves_flags));
+    #[cfg(not(test))]
+    {
+        let rflags: u64;
+        // SAFETY: Đọc cờ RFLAGS qua stack, an toàn và không gây tác động phụ.
+        unsafe {
+            core::arch::asm!("pushfq; pop {}", out(reg) rflags, options(nomem, preserves_flags));
+        }
+        rflags
     }
-    rflags
+    #[cfg(test)]
+    {
+        if MOCK_INTERRUPTS.load(Ordering::Relaxed) {
+            1 << 9 // Cờ Interrupt Flag (IF) được set
+        } else {
+            0
+        }
+    }
 }
 
 /// Kiểm tra xem ngắt trên CPU cục bộ có đang được kích hoạt hay không.
