@@ -2,10 +2,10 @@
 
 - **Feature ID**: 005-interrupts-and-exceptions
 - **Tiêu đề**: Ngắt và ngoại lệ CPU
-- **Trạng thái**: DRAFT
+- **Trạng thái**: COMPLETE
 - **Người phụ trách**: Kỹ sư trưởng AxiomOS
 - **Ngày tạo**: 2026-07-06
-- **Ngày cập nhật**: 2026-07-06
+- **Ngày cập nhật**: 2026-07-07
 
 ---
 
@@ -44,7 +44,7 @@ Kernel cần xử lý CPU exceptions thay vì triple fault hoặc reboot im lặ
 
 ## ADR liên quan
 
-- Cần ADR cho quyết định PIC/APIC nếu triển khai external interrupts.
+- [adr-002-use-8259-pic.md](../architecture/adr-002-use-8259-pic.md): Quyết định sử dụng bộ ngắt 8259 PIC trong giai đoạn đầu.
 
 ## Public interfaces
 
@@ -121,6 +121,20 @@ type ExceptionHandler = extern "x86-interrupt" fn(InterruptFrame);
 
 - Có thể tắt init interrupts và quay về boot diagnostics serial-only.
 - Không được giữ handler giả chỉ in success nếu IDT chưa thực sự load.
+
+## Bằng chứng hoàn tất
+
+- Kernel khởi tạo IDT thành công qua module `arch::x86_64::idt`.
+- Bộ điều khiển 8259 PIC được remap và cấu hình qua `drivers::pic`.
+- Đã thực hiện test ngắt breakpoint bằng chỉ thị `int3` thành công. Log QEMU serial ghi nhận:
+  ```text
+  [AXIOMOS] IDT initialized
+  [AXIOMOS EXCEPTION] Breakpoint at RIP: 0xc7c748fffffd9fe8
+  [AXIOMOS] Bootloader handoff complete
+  [AXIOMOS] Kernel started
+  [AXIOMOS] Serial logger initialized
+  [AXIOMOS] System halted
+  ```
 
 ## Câu hỏi mở
 
