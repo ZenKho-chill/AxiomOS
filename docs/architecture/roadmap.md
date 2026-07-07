@@ -39,7 +39,7 @@ Tài liệu này xác định các cột mốc phát triển (Milestones) của 
   - [x] Runtime log filtering và ring buffer log.
 - [x] Các thành phần đồng bộ hóa luồng cơ bản (Spinlock, Mutex).
 - [x] Trình lập lịch tiến trình cộng tác (Cooperative Task Scheduler) cơ bản.
-- [ ] Đặc tả thiết kế trình lập lịch trưng dụng (Preemptive Scheduler).
+- [x] Đặc tả thiết kế trình lập lịch trưng dụng (Preemptive Scheduler).
 - [x] Đồng hồ thời gian hệ thống (Timekeeping).
 
 ### Milestone 5: Hệ thống Tệp tin & Lưu trữ
