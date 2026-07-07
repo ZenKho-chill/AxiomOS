@@ -96,7 +96,7 @@ jobs:
             -display none \
             -m 256M \
             -no-reboot &
-          sleep 10
+          sleep 20
           echo "=== NỘI DUNG SERIAL LOG ==="
           cat serial.log
           echo "==========================="

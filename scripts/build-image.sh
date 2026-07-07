@@ -22,7 +22,7 @@ fi
 
 cargo +nightly build --manifest-path kernel/Cargo.toml --target x86_64-unknown-none \
     "${KERNEL_FEATURE_ARGS[@]}" \
-    -Zbuild-std=core,compiler_builtins \
+    -Zbuild-std=core,alloc,compiler_builtins \
     -Zbuild-std-features=compiler-builtins-mem
 
 # 3. Tạo file image trống 64MB
