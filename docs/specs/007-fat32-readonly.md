@@ -2,10 +2,10 @@
 
 - **Feature ID**: 007-fat32-readonly
 - **Tiêu đề**: Hệ thống tệp tin FAT32 read-only
-- **Trạng thái**: DRAFT
+- **Trạng thái**: REVIEW
 - **Người phụ trách**: Kỹ sư trưởng AxiomOS
 - **Ngày tạo**: 2026-07-06
-- **Ngày cập nhật**: 2026-07-06
+- **Ngày cập nhật**: 2026-07-07
 
 ---
 
