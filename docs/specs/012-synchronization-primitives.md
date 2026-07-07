@@ -2,7 +2,7 @@
 
 - **Feature ID**: 012-synchronization-primitives
 - **Tiêu đề**: Cơ chế đồng bộ hóa Spinlock và Mutex
-- **Trạng thái**: DRAFT
+- **Trạng thái**: COMPLETE
 - **Người phụ trách**: Kỹ sư trưởng AxiomOS
 - **Ngày tạo**: 2026-07-07
 - **Ngày cập nhật**: 2026-07-07

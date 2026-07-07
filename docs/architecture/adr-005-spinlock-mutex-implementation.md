@@ -1,6 +1,6 @@
 # ADR-005: Chiến Lược Hiện Thực Spinlock và Mutex tối giản
 
-- **Trạng thái**: DRAFT
+- **Trạng thái**: APPROVED
 - **Người đề xuất**: Kỹ sư trưởng AxiomOS
 - **Ngày tạo**: 2026-07-07
 

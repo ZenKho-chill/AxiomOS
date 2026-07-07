@@ -10,6 +10,7 @@ pub mod console;
 pub mod drivers;
 pub mod logging;
 pub mod memory;
+pub mod utils;
 
 #[cfg(not(test))]
 use core::panic::PanicInfo;
@@ -88,6 +89,9 @@ pub extern "C" fn _start() -> ! {
 
                             // Chạy chẩn đoán cấp phát bộ nhớ động
                             run_memory_diagnostics();
+
+                            // Chạy chẩn đoán cơ chế đồng bộ hóa
+                            run_sync_diagnostics();
                         }
                     }
                 }
@@ -209,4 +213,52 @@ fn run_memory_diagnostics() {
     );
 
     serial_println!("[AXIOMOS MEMORY] All memory diagnostics passed successfully!");
+}
+
+#[cfg(not(test))]
+fn run_sync_diagnostics() {
+    use utils::sync::{Spinlock, SpinlockIrqSave};
+
+    serial_println!("[AXIOMOS SYNC] Chạy chẩn đoán cơ chế đồng bộ hóa...");
+
+    // 1. Kiểm thử Spinlock cơ bản
+    let lock = Spinlock::new(100);
+    assert!(!lock.is_locked());
+    {
+        let mut guard = lock.lock();
+        assert!(lock.is_locked());
+        assert_eq!(*guard, 100);
+        *guard = 200;
+    }
+    assert!(!lock.is_locked());
+    {
+        let guard = lock.lock();
+        assert_eq!(*guard, 200);
+    }
+    serial_println!("[AXIOMOS SYNC] Kiểm thử Spinlock cơ bản: THÀNH CÔNG");
+
+    // 2. Kiểm thử SpinlockIrqSave (An toàn ngắt)
+    let irq_lock = SpinlockIrqSave::new(300);
+    assert!(!irq_lock.is_locked());
+
+    let is_enabled_before = arch::x86_64::instructions::are_interrupts_enabled();
+    {
+        let mut guard = irq_lock.lock();
+        assert!(irq_lock.is_locked());
+        assert_eq!(*guard, 300);
+        *guard = 400;
+
+        let is_enabled_during = arch::x86_64::instructions::are_interrupts_enabled();
+        assert!(!is_enabled_during, "Lỗi: Ngắt chưa bị tắt khi đang giữ SpinlockIrqSave!");
+    }
+    assert!(!irq_lock.is_locked());
+
+    let is_enabled_after = arch::x86_64::instructions::are_interrupts_enabled();
+    assert_eq!(
+        is_enabled_before, is_enabled_after,
+        "Lỗi: Trạng thái ngắt không được khôi phục sau khi thả khóa!"
+    );
+
+    serial_println!("[AXIOMOS SYNC] Kiểm thử SpinlockIrqSave (An toàn ngắt): THÀNH CÔNG");
+    serial_println!("[AXIOMOS SYNC] Tất cả chẩn đoán đồng bộ hóa đã vượt qua!");
 }

@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Thêm các thành phần đồng bộ hóa luồng cơ bản tự viết gồm Spinlock, SpinlockIrqSave và Mutex an toàn cho ngắt CPU.
+- Thêm Spec 012 và tài liệu kiến trúc ADR-005 cho cơ chế đồng bộ hóa tối giản.
+- Tích hợp SpinlockIrqSave vào driver bàn phím PS/2 để thay thế hoàn toàn thư viện ngoài spin.
 - Khởi tạo cấu trúc repository ban đầu theo quy chuẩn [AGENTS.md](AGENTS.md).
 - Thiết lập Cargo workspace và cấu hình `rust-toolchain.toml` sử dụng phiên bản Rust nightly với target `x86_64-unknown-none`.
 - Thêm tài liệu quyết định kiến trúc [adr-001-use-nightly-rust.md](./docs/architecture/adr-001-use-nightly-rust.md).
