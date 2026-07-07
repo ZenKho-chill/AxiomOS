@@ -1,12 +1,16 @@
 #![no_std]
-#![no_main]
+#![cfg_attr(not(test), no_main)]
 #![feature(abi_x86_interrupt)]
+
+extern crate alloc;
 
 pub mod arch;
 pub mod boot;
 pub mod console;
 pub mod drivers;
+pub mod memory;
 
+#[cfg(not(test))]
 use core::panic::PanicInfo;
 
 /// Điểm vào Kernel (Kernel Entry Point)
@@ -14,6 +18,7 @@ use core::panic::PanicInfo;
 /// # Safety
 /// Hàm này được gọi trực tiếp bởi bootloader Limine. Chúng ta tắt mangling để trình liên kết (linker)
 /// có thể định vị chính xác nhãn `_start`.
+#[cfg(not(test))]
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
     boot::limine::keep_requests_alive();
@@ -44,6 +49,58 @@ pub extern "C" fn _start() -> ! {
     // SAFETY: int3 kích hoạt breakpoint exception hợp lệ đã đăng ký handler trong IDT
     unsafe {
         core::arch::asm!("int3");
+    }
+
+    // Khởi tạo hệ thống quản lý bộ nhớ
+    match memory::frame::init_memory() {
+        Ok(stats) => {
+            serial_println!(
+                "[AXIOMOS MEMORY] Usable RAM: {} MiB, Regions: {}, Free: {} frames, Used: {} frames",
+                stats.total_usable / (1024 * 1024),
+                stats.region_count,
+                stats.free_frames,
+                stats.allocated_frames
+            );
+            console::framebuffer::framebuffer_println(format_args!(
+                "[AXIOMOS MEMORY] Usable RAM: {} MiB",
+                stats.total_usable / (1024 * 1024)
+            ));
+
+            // Khởi tạo Heap Allocator
+            match memory::frame::hhdm_offset() {
+                Ok(hhdm) => {
+                    // SAFETY: Khởi tạo heap chỉ gọi duy nhất 1 lần, các vùng nhớ ảo đã được map an toàn
+                    unsafe {
+                        if let Err(error) = memory::heap::init_heap(hhdm) {
+                            serial_println!(
+                                "[AXIOMOS MEMORY] Heap initialization failed: {:?}",
+                                error
+                            );
+                        } else {
+                            let heap_size_kib = memory::heap::HEAP_SIZE / 1024;
+                            let heap_start = memory::heap::HEAP_START;
+                            serial_println!(
+                                "[AXIOMOS MEMORY] Kernel Heap initialized: {} KiB at Virtual Address: 0x{:X}",
+                                heap_size_kib,
+                                heap_start
+                            );
+
+                            // Chạy chẩn đoán cấp phát bộ nhớ động
+                            run_memory_diagnostics();
+                        }
+                    }
+                }
+                Err(error) => {
+                    serial_println!("[AXIOMOS MEMORY] HHDM offset unavailable: {:?}", error);
+                }
+            }
+        }
+        Err(error) => {
+            serial_println!(
+                "[AXIOMOS MEMORY] Frame allocator initialization failed: {:?}",
+                error
+            );
+        }
     }
 
     run_panic_test_if_requested();
@@ -108,6 +165,7 @@ pub extern "C" fn _start() -> ! {
 }
 
 /// Trình xử lý Panic khi xảy ra lỗi không thể phục hồi
+#[cfg(not(test))]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     serial_println!("[AXIOMOS PANIC] {}", info);
@@ -120,15 +178,41 @@ fn panic(info: &PanicInfo) -> ! {
     }
 }
 
+#[cfg(not(test))]
 fn boot_log(message: &str) {
     serial_println!("{}", message);
     console::framebuffer::framebuffer_println(format_args!("{}", message));
 }
 
-#[cfg(feature = "panic-test")]
+#[cfg(all(not(test), feature = "panic-test"))]
 fn run_panic_test_if_requested() {
     panic!("Spec 003 framebuffer panic test");
 }
 
-#[cfg(not(feature = "panic-test"))]
+#[cfg(all(not(test), not(feature = "panic-test")))]
 fn run_panic_test_if_requested() {}
+
+#[cfg(not(test))]
+fn run_memory_diagnostics() {
+    use alloc::boxed::Box;
+    use alloc::vec::Vec;
+
+    serial_println!("[AXIOMOS MEMORY] Running dynamic memory diagnostics...");
+
+    let box_val = Box::new(42);
+    serial_println!(
+        "[AXIOMOS MEMORY] Box allocation success, value: {}",
+        *box_val
+    );
+
+    let mut vec_val = Vec::new();
+    for i in 0..5 {
+        vec_val.push(i * 10);
+    }
+    serial_println!(
+        "[AXIOMOS MEMORY] Vec allocation success, elements: {:?}",
+        vec_val
+    );
+
+    serial_println!("[AXIOMOS MEMORY] All memory diagnostics passed successfully!");
+}

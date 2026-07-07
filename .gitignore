@@ -4,6 +4,7 @@
 *.iso
 *.bin
 *.elf
+*.log
 *.o
 *.d
 .DS_Store

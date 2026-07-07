@@ -48,6 +48,6 @@ Mục tiêu của Milestone 3 là xây dựng một nền tảng quản lý bộ
 
 ## Hệ quả và ảnh hưởng
 
-- **Dependencies mới**: Dự án sẽ thêm crate `linked_list_allocator` phiên bản `^0.10.7` vào kernel dependencies.
+- **Dependencies mới**: Dự án sẽ thêm crate `linked_list_allocator` phiên bản `^0.10.6` vào kernel dependencies.
 - **Sử dụng bộ nhớ**: Kernel sẽ tiêu tốn một phần nhỏ bộ nhớ vật lý ban đầu (khoảng vài chục KiB tùy thuộc vào tổng dung lượng RAM) để lưu trữ bitmap của Frame Allocator.
 - **Tính an toàn**: Tích hợp global allocator của Rust cho phép chúng ta sử dụng các cấu trúc dữ liệu động quen thuộc như `Box`, `Vec`, `BTreeMap` từ thư viện `alloc` của Rust cho các milestone tiếp theo một cách an toàn và dễ dàng.
