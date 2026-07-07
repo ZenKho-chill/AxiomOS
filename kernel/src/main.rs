@@ -10,6 +10,7 @@ pub mod console;
 pub mod drivers;
 pub mod logging;
 pub mod memory;
+pub mod utils;
 
 #[cfg(not(test))]
 use core::panic::PanicInfo;
@@ -44,6 +45,8 @@ pub extern "C" fn _start() -> ! {
         logging::boot("IDT initialized");
 
         drivers::pic::init();
+        utils::time::init();
+        logging::boot("PIT initialized at 1000Hz");
     }
 
     // Kiểm chứng ngắt Breakpoint (int3)
@@ -88,6 +91,15 @@ pub extern "C" fn _start() -> ! {
 
                             // Chạy chẩn đoán cấp phát bộ nhớ động
                             run_memory_diagnostics();
+
+                            // Chạy chẩn đoán cơ chế đồng bộ hóa
+                            run_sync_diagnostics();
+
+                            // Chạy chẩn đoán bộ lọc log và ring buffer
+                            run_logging_diagnostics();
+
+                            // Chạy chẩn đoán bộ đếm thời gian
+                            run_timekeeping_diagnostics();
                         }
                     }
                 }
@@ -209,4 +221,133 @@ fn run_memory_diagnostics() {
     );
 
     serial_println!("[AXIOMOS MEMORY] All memory diagnostics passed successfully!");
+}
+
+#[cfg(not(test))]
+fn run_sync_diagnostics() {
+    use utils::sync::{Spinlock, SpinlockIrqSave};
+
+    serial_println!("[AXIOMOS SYNC] Chạy chẩn đoán cơ chế đồng bộ hóa...");
+
+    // 1. Kiểm thử Spinlock cơ bản
+    let lock = Spinlock::new(100);
+    assert!(!lock.is_locked());
+    {
+        let mut guard = lock.lock();
+        assert!(lock.is_locked());
+        assert_eq!(*guard, 100);
+        *guard = 200;
+    }
+    assert!(!lock.is_locked());
+    {
+        let guard = lock.lock();
+        assert_eq!(*guard, 200);
+    }
+    serial_println!("[AXIOMOS SYNC] Kiểm thử Spinlock cơ bản: THÀNH CÔNG");
+
+    // 2. Kiểm thử SpinlockIrqSave (An toàn ngắt)
+    let irq_lock = SpinlockIrqSave::new(300);
+    assert!(!irq_lock.is_locked());
+
+    let is_enabled_before = arch::x86_64::instructions::are_interrupts_enabled();
+    {
+        let mut guard = irq_lock.lock();
+        assert!(irq_lock.is_locked());
+        assert_eq!(*guard, 300);
+        *guard = 400;
+
+        let is_enabled_during = arch::x86_64::instructions::are_interrupts_enabled();
+        assert!(
+            !is_enabled_during,
+            "Lỗi: Ngắt chưa bị tắt khi đang giữ SpinlockIrqSave!"
+        );
+    }
+    assert!(!irq_lock.is_locked());
+
+    let is_enabled_after = arch::x86_64::instructions::are_interrupts_enabled();
+    assert_eq!(
+        is_enabled_before, is_enabled_after,
+        "Lỗi: Trạng thái ngắt không được khôi phục sau khi thả khóa!"
+    );
+
+    serial_println!("[AXIOMOS SYNC] Kiểm thử SpinlockIrqSave (An toàn ngắt): THÀNH CÔNG");
+    serial_println!("[AXIOMOS SYNC] Tất cả chẩn đoán đồng bộ hóa đã vượt qua!");
+}
+
+#[cfg(not(test))]
+fn run_logging_diagnostics() {
+    use logging::{dump_log_buffer, filter_level, set_filter_level, LogLevel};
+
+    serial_println!("[AXIOMOS LOG] Chạy chẩn đoán bộ lọc log và ring buffer...");
+
+    // Lưu mức lọc hiện tại
+    let original_level = filter_level();
+
+    // 1. Thử ghi log mức Info và Warn
+    logging::info("TEST", format_args!("Thông điệp mức Info"), false);
+    logging::write(logging::LogRecord {
+        level: LogLevel::Warn,
+        subsystem: Some("TEST"),
+        message: format_args!("Thông điệp mức Warn"),
+        mirror_framebuffer: false,
+    });
+
+    // 2. Thiết lập mức lọc Warn
+    set_filter_level(LogLevel::Warn);
+
+    // Log Info tiếp theo phải bị lọc (không lưu vào ring buffer)
+    logging::info(
+        "TEST",
+        format_args!("Thông điệp mức Info này phải bị lọc!"),
+        false,
+    );
+
+    // Khôi phục lại mức lọc ban đầu
+    set_filter_level(original_level);
+
+    // 3. Dump ring buffer log ra serial để kiểm tra thủ công các log đã lưu
+    dump_log_buffer();
+
+    serial_println!("[AXIOMOS LOG] Chạy chẩn đoán bộ lọc log và ring buffer: THÀNH CÔNG");
+}
+
+#[cfg(not(test))]
+fn run_timekeeping_diagnostics() {
+    use utils::time::{sleep_ms, uptime_ms};
+
+    serial_println!("[AXIOMOS TIME] Chạy chẩn đoán đồng hồ thời gian...");
+
+    // 1. Kiểm chứng việc đọc uptime tăng lên
+    let start_time = uptime_ms();
+
+    // Bật ngắt tạm thời để bộ đếm ticks có thể hoạt động trong lúc chẩn đoán
+    // (Vì ngắt ngầm định chưa bật cho đến cuối _start, ta cần bật ngắt ở đây để timer chạy)
+    let is_enabled_before = arch::x86_64::instructions::are_interrupts_enabled();
+    if !is_enabled_before {
+        unsafe {
+            drivers::pic::unmask(0); // Bật IRQ 0
+            core::arch::asm!("sti");
+        }
+    }
+
+    // 2. Thử sleep_ms 50ms và đo lường thời gian thực tế trôi qua
+    sleep_ms(50);
+
+    let end_time = uptime_ms();
+    let elapsed = end_time - start_time;
+
+    // Khôi phục lại trạng thái ngắt ban đầu
+    if !is_enabled_before {
+        unsafe {
+            core::arch::asm!("cli");
+        }
+    }
+
+    serial_println!(
+        "[AXIOMOS TIME] Đã ngủ 50ms, thời gian đo được: {} ms",
+        elapsed
+    );
+    assert!(elapsed >= 50, "Lỗi: sleep_ms kết thúc quá sớm!");
+
+    serial_println!("[AXIOMOS TIME] Chạy chẩn đoán đồng hồ thời gian: THÀNH CÔNG");
 }

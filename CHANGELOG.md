@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Thêm hệ thống quản lý thời gian (Timekeeping) hỗ trợ cấu hình PIT 1000Hz, API uptime_ms() và sleep_ms().
+- Cập nhật Spec 013-system-timekeeping sang trạng thái COMPLETE.
+- Thêm cơ chế lọc log động ở runtime và bộ đệm xoay vòng ring buffer tĩnh trong kernel cho Milestone 4.
+- Thêm các thành phần đồng bộ hóa luồng cơ bản tự viết gồm Spinlock, SpinlockIrqSave và Mutex an toàn cho ngắt CPU.
+- Thêm Spec 012 và tài liệu kiến trúc ADR-005 cho cơ chế đồng bộ hóa tối giản.
+- Tích hợp SpinlockIrqSave vào driver bàn phím PS/2 để thay thế hoàn toàn thư viện ngoài spin.
 - Khởi tạo cấu trúc repository ban đầu theo quy chuẩn [AGENTS.md](AGENTS.md).
 - Thiết lập Cargo workspace và cấu hình `rust-toolchain.toml` sử dụng phiên bản Rust nightly với target `x86_64-unknown-none`.
 - Thêm tài liệu quyết định kiến trúc [adr-001-use-nightly-rust.md](./docs/architecture/adr-001-use-nightly-rust.md).
@@ -33,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Thêm Spec 011, ADR 004 và logging facade nội bộ cho Milestone 4 với `LogRecord`, level, subsystem và mirror framebuffer tùy chọn.
 
 ### Fixed
+- Sửa lỗi tranh chấp và RefCell already borrowed trong các unit test của module logging bằng cách tối ưu hóa scope của lock guard.
 - Sửa cấu hình CI chỉ chạy push trên main nhằm loại bỏ trùng lặp workflow kiểm thử khi đẩy commit lên các nhánh feature đang có PR mở.
 - Sửa cấu hình CodeRabbit để tự động review cả PR nháp (Draft PR) trên mọi nhánh.
 - Sửa cấu hình Limine 7.x để entry AxiomOS dùng `PROTOCOL=limine` và `KERNEL_PATH=boot:///boot/kernel.elf`, tránh lỗi `[config file contains no valid entries]`.

@@ -34,13 +34,13 @@ Tài liệu này xác định các cột mốc phát triển (Milestones) của 
 - [x] Viết chẩn đoán bộ nhớ tối thiểu qua serial/framebuffer trong QEMU.
 
 ### Milestone 4: Dịch Vụ Kernel & Scheduler
-- [ ] Hệ thống ghi log có cấu trúc nâng cao.
+- [x] Hệ thống ghi log có cấu trúc nâng cao.
   - [x] Facade logging kernel giai đoạn 1 với `LogRecord`, level, subsystem và mirror framebuffer tùy chọn.
-  - [ ] Runtime log filtering và ring buffer log.
-- [ ] Các thành phần đồng bộ hóa luồng cơ bản (Spinlock, Mutex).
+  - [x] Runtime log filtering và ring buffer log.
+- [x] Các thành phần đồng bộ hóa luồng cơ bản (Spinlock, Mutex).
 - [ ] Trình lập lịch tiến trình cộng tác (Cooperative Task Scheduler) cơ bản.
 - [ ] Đặc tả thiết kế trình lập lịch trưng dụng (Preemptive Scheduler).
-- [ ] Đồng hồ thời gian hệ thống (Timekeeping).
+- [x] Đồng hồ thời gian hệ thống (Timekeeping).
 
 ### Milestone 5: Hệ thống Tệp tin & Lưu trữ
 - [ ] Lớp trừu tượng hóa thiết bị khối (Block Device Abstraction).
