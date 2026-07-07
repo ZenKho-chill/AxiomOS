@@ -4,13 +4,13 @@ Tài liệu này xác định các cột mốc phát triển (Milestones) của 
 
 ## Các Milestone
 
-### Milestone 0: Nền tảng Repository (Hiện tại)
+### Milestone 0: Nền tảng Repository (Hoàn thành)
 - [x] Thiết lập Workspace Cargo.
 - [x] Cấu hình Formatting, Linting và Github CI.
 - [x] Viết và duyệt 3 Spec cốt lõi ban đầu (`000-project-charter`, `001-boot-and-kernel-entry`, `002-serial-logging`).
 - [x] Cấu trúc repository hoàn chỉnh.
 
-### Milestone 1: Kernel Có Thể Boot (Đang thực hiện)
+### Milestone 1: Kernel Có Thể Boot (Hoàn thành)
 - [x] Tải bootloader Limine và thiết lập cấu hình.
 - [x] Điểm vào Kernel (`_start`) bằng Rust `no_std`, `no_main`.
 - [x] Giao tiếp sớm qua Serial COM1 để in log.
@@ -19,12 +19,12 @@ Tài liệu này xác định các cột mốc phát triển (Milestones) của 
 - [x] Viết script xây dựng đĩa ảo raw IMG và chạy thử nghiệm bằng QEMU.
 - [x] Tích hợp kiểm thử tự động boot bằng QEMU trên CI.
 
-### Milestone 2: Nền tảng CPU
-- [ ] Thiết lập Bảng mô tả phân đoạn toàn cục (GDT).
-- [ ] Thiết lập Bảng mô tả ngắt (IDT).
-- [ ] Xử lý các CPU Exception cơ bản (như Page Fault, Double Fault).
-- [ ] Kích hoạt bộ điều khiển ngắt (APIC hoặc PIC) và Timer interrupt.
-- [ ] Driver bàn phím PS/2 cơ bản thông qua ngắt I/O.
+### Milestone 2: Nền tảng CPU (Hoàn thành)
+- [x] Thiết lập Bảng mô tả phân đoạn toàn cục (GDT).
+- [x] Thiết lập Bảng mô tả ngắt (IDT).
+- [x] Xử lý các CPU Exception cơ bản (như Page Fault, Double Fault).
+- [x] Kích hoạt bộ điều khiển ngắt (APIC hoặc PIC) và Timer interrupt.
+- [x] Driver bàn phím PS/2 cơ bản thông qua ngắt I/O.
 
 ### Milestone 3: Nền tảng Quản lý Bộ nhớ
 - [ ] Phân tích bản đồ bộ nhớ (Memory Map) cung cấp từ Limine.
