@@ -10,6 +10,7 @@ pub mod console;
 pub mod drivers;
 pub mod logging;
 pub mod memory;
+pub mod process;
 pub mod utils;
 
 #[cfg(not(test))]
@@ -89,6 +90,9 @@ pub extern "C" fn _start() -> ! {
                                 heap_start
                             );
 
+                            // Khởi tạo bộ lập lịch tiến trình
+                            process::scheduler::init();
+
                             // Chạy chẩn đoán cấp phát bộ nhớ động
                             run_memory_diagnostics();
 
@@ -100,6 +104,9 @@ pub extern "C" fn _start() -> ! {
 
                             // Chạy chẩn đoán bộ đếm thời gian
                             run_timekeeping_diagnostics();
+
+                            // Chạy chẩn đoán lập lịch tiến trình
+                            run_scheduler_diagnostics();
                         }
                     }
                 }
@@ -350,4 +357,95 @@ fn run_timekeeping_diagnostics() {
     assert!(elapsed >= 50, "Lỗi: sleep_ms kết thúc quá sớm!");
 
     serial_println!("[AXIOMOS TIME] Chạy chẩn đoán đồng hồ thời gian: THÀNH CÔNG");
+}
+
+#[cfg(not(test))]
+fn run_scheduler_diagnostics() {
+    use process::scheduler::{spawn, yield_now};
+
+    serial_println!("[AXIOMOS SCHED] Chạy chẩn đoán lập lịch tiến trình cộng tác...");
+
+    // 1. Spawn 2 tasks nhân đơn giản
+    spawn(task_a);
+    spawn(task_b);
+
+    // Bật ngắt tạm thời để bộ đếm timer ticks chạy ổn định
+    let is_enabled_before = arch::x86_64::instructions::are_interrupts_enabled();
+    if !is_enabled_before {
+        unsafe {
+            drivers::pic::unmask(0);
+            core::arch::asm!("sti");
+        }
+    }
+
+    // 2. Nhường CPU liên tục cho đến khi cả Task A và Task B hoàn thành đủ 2 chu kỳ chạy
+    loop {
+        let done = unsafe {
+            let a = core::ptr::read_volatile(&raw const TASK_A_RUNS);
+            let b = core::ptr::read_volatile(&raw const TASK_B_RUNS);
+            a == 2 && b == 2
+        };
+        if done {
+            break;
+        }
+        yield_now();
+    }
+
+    // 3. Khôi phục lại trạng thái ngắt ban đầu
+    if !is_enabled_before {
+        unsafe {
+            core::arch::asm!("cli");
+        }
+    }
+
+    // Xác nhận cả 2 task đều đã chạy xong 2 lần
+    unsafe {
+        let a_runs = core::ptr::read_volatile(&raw const TASK_A_RUNS);
+        let b_runs = core::ptr::read_volatile(&raw const TASK_B_RUNS);
+        assert_eq!(a_runs, 2, "Lỗi: Task A chưa chạy đủ 2 lần!");
+        assert_eq!(b_runs, 2, "Lỗi: Task B chưa chạy đủ 2 lần!");
+    }
+
+    serial_println!("[AXIOMOS SCHED] Chạy chẩn đoán lập lịch tiến trình: THÀNH CÔNG");
+}
+
+#[cfg(not(test))]
+static mut TASK_A_RUNS: u32 = 0;
+#[cfg(not(test))]
+static mut TASK_B_RUNS: u32 = 0;
+
+#[cfg(not(test))]
+fn task_a() {
+    serial_println!("[AXIOMOS SCHED] Task A bắt đầu chạy.");
+    unsafe {
+        let val = core::ptr::read_volatile(&raw const TASK_A_RUNS);
+        core::ptr::write_volatile(&raw mut TASK_A_RUNS, val + 1);
+    }
+
+    // Nhường CPU cho Task B
+    process::scheduler::yield_now();
+
+    serial_println!("[AXIOMOS SCHED] Task A chạy lại lần 2.");
+    unsafe {
+        let val = core::ptr::read_volatile(&raw const TASK_A_RUNS);
+        core::ptr::write_volatile(&raw mut TASK_A_RUNS, val + 1);
+    }
+}
+
+#[cfg(not(test))]
+fn task_b() {
+    serial_println!("[AXIOMOS SCHED] Task B bắt đầu chạy.");
+    unsafe {
+        let val = core::ptr::read_volatile(&raw const TASK_B_RUNS);
+        core::ptr::write_volatile(&raw mut TASK_B_RUNS, val + 1);
+    }
+
+    // Nhường CPU cho Task A
+    process::scheduler::yield_now();
+
+    serial_println!("[AXIOMOS SCHED] Task B chạy lại lần 2.");
+    unsafe {
+        let val = core::ptr::read_volatile(&raw const TASK_B_RUNS);
+        core::ptr::write_volatile(&raw mut TASK_B_RUNS, val + 1);
+    }
 }

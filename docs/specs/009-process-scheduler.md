@@ -2,7 +2,7 @@
 
 - **Feature ID**: 009-process-scheduler
 - **Tiêu đề**: Process model và cooperative scheduler
-- **Trạng thái**: DRAFT
+- **Trạng thái**: COMPLETE
 - **Người phụ trách**: Kỹ sư trưởng AxiomOS
 - **Ngày tạo**: 2026-07-06
 - **Ngày cập nhật**: 2026-07-07
