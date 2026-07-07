@@ -27,11 +27,11 @@ Tài liệu này xác định các cột mốc phát triển (Milestones) của 
 - [x] Driver bàn phím PS/2 cơ bản thông qua ngắt I/O.
 
 ### Milestone 3: Nền tảng Quản lý Bộ nhớ
-- [ ] Phân tích bản đồ bộ nhớ (Memory Map) cung cấp từ Limine.
-- [ ] Trình quản lý khung trang vật lý (Physical Frame Allocator) dạng Bitmap hoặc Free List.
-- [ ] Ánh xạ bộ nhớ ảo (Virtual Memory Paging).
-- [ ] Trình cấp phát bộ nhớ Heap của Kernel (Kernel Heap Allocator).
-- [ ] Viết các chương trình chẩn đoán bộ nhớ.
+- [x] Phân tích bản đồ bộ nhớ (Memory Map) cung cấp từ Limine.
+- [x] Trình quản lý khung trang vật lý (Physical Frame Allocator) dạng Bitmap.
+- [x] Ánh xạ bộ nhớ ảo tối thiểu cho heap kernel.
+- [x] Trình cấp phát bộ nhớ Heap của Kernel (Kernel Heap Allocator).
+- [x] Viết chẩn đoán bộ nhớ tối thiểu qua serial/framebuffer trong QEMU.
 
 ### Milestone 4: Dịch Vụ Kernel & Scheduler
 - [ ] Hệ thống ghi log có cấu trúc nâng cao.

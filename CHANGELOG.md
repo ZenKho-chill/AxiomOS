@@ -27,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Thêm tài liệu quyết định kiến trúc [adr-002-use-8259-pic.md](./docs/architecture/adr-002-use-8259-pic.md) giải thích việc lựa chọn bộ ngắt 8259 PIC thay vì APIC.
 - Thêm driver bàn phím PS/2 (Spec 006) hỗ trợ giải mã Scancode Set 1, tích hợp ring buffer tĩnh đồng bộ bằng spinlock Mutex.
 - Bật ngắt Timer (IRQ 0) của hệ thống và xử lý tăng tick định kỳ kiểm chứng ngắt phần cứng.
+- Thêm nền tảng quản lý bộ nhớ theo Spec 004: đọc Limine memory map, lấy HHDM offset, bitmap physical frame allocator, paging helper, kernel heap 8 MiB và memory diagnostics qua serial/framebuffer.
+- Thêm unit test kernel cho `PhysFrame::from_start_address` và helper căn lề bitmap trong memory foundation.
 
 ### Fixed
 - Sửa cấu hình Limine 7.x để entry AxiomOS dùng `PROTOCOL=limine` và `KERNEL_PATH=boot:///boot/kernel.elf`, tránh lỗi `[config file contains no valid entries]`.
@@ -34,6 +36,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sửa serial boot sequence để khớp đúng các dòng log bắt buộc của Milestone 1.
 - Sửa lỗi phân quyền thực thi (Permission Denied) cho binary limine trong quá trình build image trên CI.
 - Sửa cấu hình timeout của bootloader và thời gian chờ kiểm thử QEMU trên CI để tránh việc log serial trống do CI chạy chậm.
+- Sửa thống kê frame allocator để `allocated_frames` chỉ tính frame thuộc vùng Limine `usable`, tránh log số frame đã dùng bị phóng đại bởi framebuffer hoặc vùng reserved cao.
+- Sửa `deallocate_frame` để từ chối frame không thuộc vùng usable và frame đã free, tránh cấp phát lại vùng reserved/kernel/MMIO do caller truyền sai.
+- Sửa khởi tạo heap để không fallback HHDM về `0`; kernel giờ chỉ init heap khi HHDM offset đã được memory module xác thực.
 
 ### Changed
 - Chuyển trạng thái specs `000-project-charter`, `001-boot-and-kernel-entry` và `002-serial-logging` sang `COMPLETE` sau khi acceptance criteria đã được xác minh.

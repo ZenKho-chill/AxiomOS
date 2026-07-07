@@ -81,6 +81,97 @@ struct LimineFramebuffer {
     _edid: *const u8,
 }
 
+#[repr(C)]
+struct LimineHhdmRequest {
+    _magic: [u64; 2],
+    _id: [u64; 2],
+    _revision: u64,
+    response: UnsafeCell<*const LimineHhdmResponse>,
+}
+
+// SAFETY: Limine chỉ ghi field response trong giai đoạn boot handoff trước `_start`;
+// sau đó kernel chỉ đọc volatile và không ghi lại request tĩnh này.
+unsafe impl Sync for LimineHhdmRequest {}
+
+impl LimineHhdmRequest {
+    const fn new() -> Self {
+        Self {
+            _magic: [0xc7b1dd30df4c8b88, 0x0a82e883a194f07b],
+            _id: [0x48dcf1cb8ad2b852, 0x63984e959a98244b],
+            _revision: 0,
+            response: UnsafeCell::new(null()),
+        }
+    }
+
+    fn response(&self) -> Option<&'static LimineHhdmResponse> {
+        // SAFETY: Limine cập nhật con trỏ response trước khi trao quyền cho kernel;
+        // đọc volatile tránh compiler giữ giá trị null ban đầu.
+        let response = unsafe { self.response.get().read_volatile() };
+        if response.is_null() {
+            return None;
+        }
+        // SAFETY: Con trỏ response không null và trỏ tới cấu trúc do Limine giữ sống
+        // trong giai đoạn kernel boot sớm.
+        Some(unsafe { &*response })
+    }
+}
+
+#[repr(C)]
+struct LimineHhdmResponse {
+    _revision: u64,
+    offset: u64,
+}
+
+#[repr(C)]
+struct LimineMemoryMapRequest {
+    _magic: [u64; 2],
+    _id: [u64; 2],
+    _revision: u64,
+    response: UnsafeCell<*const LimineMemoryMapResponse>,
+}
+
+// SAFETY: Limine chỉ ghi field response trong giai đoạn boot handoff trước `_start`;
+// kernel giữ request tĩnh để đọc volatile và không mutation song song.
+unsafe impl Sync for LimineMemoryMapRequest {}
+
+impl LimineMemoryMapRequest {
+    const fn new() -> Self {
+        Self {
+            _magic: [0xc7b1dd30df4c8b88, 0x0a82e883a194f07b],
+            _id: [0x67cf3d9d378a806f, 0xe304acdfc50c3c62],
+            _revision: 0,
+            response: UnsafeCell::new(null()),
+        }
+    }
+
+    fn response(&self) -> Option<&'static LimineMemoryMapResponse> {
+        // SAFETY: Limine cập nhật con trỏ response trước khi trao quyền cho kernel;
+        // đọc volatile tránh compiler giữ giá trị null ban đầu.
+        let response = unsafe { self.response.get().read_volatile() };
+        if response.is_null() {
+            return None;
+        }
+        // SAFETY: Con trỏ response không null và trỏ tới memory-map response
+        // do Limine giữ sống trong giai đoạn boot sớm.
+        Some(unsafe { &*response })
+    }
+}
+
+#[repr(C)]
+struct LimineMemoryMapResponse {
+    _revision: u64,
+    entry_count: u64,
+    entries: *const *const LimineMmapEntry,
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct LimineMmapEntry {
+    pub base: u64,
+    pub length: u64,
+    pub entry_type: u32,
+}
+
 #[used]
 #[link_section = ".requests_start_marker"]
 static REQUESTS_START_MARKER: [u64; 4] = [
@@ -99,6 +190,14 @@ static BASE_REVISION: LimineBaseRevision = LimineBaseRevision::with_revision(3);
 static FRAMEBUFFER_REQUEST: LimineFramebufferRequest = LimineFramebufferRequest::new();
 
 #[used]
+#[link_section = ".requests"]
+static HHDM_REQUEST: LimineHhdmRequest = LimineHhdmRequest::new();
+
+#[used]
+#[link_section = ".requests"]
+static MEMORY_MAP_REQUEST: LimineMemoryMapRequest = LimineMemoryMapRequest::new();
+
+#[used]
 #[link_section = ".requests_end_marker"]
 static REQUESTS_END_MARKER: [u64; 2] = [0xadc0e0531bb10d03, 0x9572709f31764c62];
 
@@ -107,6 +206,8 @@ pub fn keep_requests_alive() {
     let _ = &REQUESTS_START_MARKER;
     let _ = &BASE_REVISION;
     let _ = &FRAMEBUFFER_REQUEST;
+    let _ = &HHDM_REQUEST;
+    let _ = &MEMORY_MAP_REQUEST;
     let _ = &REQUESTS_END_MARKER;
 }
 
@@ -142,4 +243,19 @@ pub fn framebuffer_info() -> Option<FramebufferInfo> {
         blue_mask_size: framebuffer.blue_mask_size,
         blue_mask_shift: framebuffer.blue_mask_shift,
     })
+}
+
+/// Lấy HHDM offset do Limine bàn giao.
+pub fn hhdm_offset() -> Option<u64> {
+    let response = HHDM_REQUEST.response()?;
+    Some(response.offset)
+}
+
+/// Trả về một slice raw pointer các Memory Map Entry do Limine cung cấp.
+pub fn memory_map_raw() -> Option<(*const *const LimineMmapEntry, usize)> {
+    let response = MEMORY_MAP_REQUEST.response()?;
+    if response.entry_count == 0 || response.entries.is_null() {
+        return None;
+    }
+    Some((response.entries, response.entry_count as usize))
 }
