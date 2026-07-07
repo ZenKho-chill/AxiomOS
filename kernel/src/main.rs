@@ -249,7 +249,10 @@ fn run_sync_diagnostics() {
         *guard = 400;
 
         let is_enabled_during = arch::x86_64::instructions::are_interrupts_enabled();
-        assert!(!is_enabled_during, "Lỗi: Ngắt chưa bị tắt khi đang giữ SpinlockIrqSave!");
+        assert!(
+            !is_enabled_during,
+            "Lỗi: Ngắt chưa bị tắt khi đang giữ SpinlockIrqSave!"
+        );
     }
     assert!(!irq_lock.is_locked());
 
