@@ -35,7 +35,7 @@ pub unsafe fn init() {
         "mov [rsp], {limit:x}",
         "lgdt [rsp]",
         "add rsp, 16",
-        
+
         "push 0x08",           // CS selector trong GDT mới
         "lea rax, [2f]",       // Địa chỉ nhãn 2
         "push rax",
