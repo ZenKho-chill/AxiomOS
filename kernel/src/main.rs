@@ -319,7 +319,7 @@ fn run_timekeeping_diagnostics() {
 
     // 1. Kiểm chứng việc đọc uptime tăng lên
     let start_time = uptime_ms();
-    
+
     // Bật ngắt tạm thời để bộ đếm ticks có thể hoạt động trong lúc chẩn đoán
     // (Vì ngắt ngầm định chưa bật cho đến cuối _start, ta cần bật ngắt ở đây để timer chạy)
     let is_enabled_before = arch::x86_64::instructions::are_interrupts_enabled();
@@ -343,7 +343,10 @@ fn run_timekeeping_diagnostics() {
         }
     }
 
-    serial_println!("[AXIOMOS TIME] Đã ngủ 50ms, thời gian đo được: {} ms", elapsed);
+    serial_println!(
+        "[AXIOMOS TIME] Đã ngủ 50ms, thời gian đo được: {} ms",
+        elapsed
+    );
     assert!(elapsed >= 50, "Lỗi: sleep_ms kết thúc quá sớm!");
 
     serial_println!("[AXIOMOS TIME] Chạy chẩn đoán đồng hồ thời gian: THÀNH CÔNG");

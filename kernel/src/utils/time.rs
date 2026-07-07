@@ -86,9 +86,9 @@ unsafe fn outb(port: u16, value: u8) {
 #[cfg(test)]
 mod tests {
     extern crate std;
-    use super::*;
     use self::std::thread;
     use self::std::time::Duration;
+    use super::*;
 
     #[test]
     fn test_uptime_increases() {
@@ -104,7 +104,7 @@ mod tests {
     #[test]
     fn test_sleep_ms() {
         MOCK_TICKS.store(0, Ordering::Relaxed);
-        
+
         // Spawn một thread phụ để tăng mock ticks giả lập cho busy-wait
         thread::spawn(|| {
             for _ in 0..20 {
@@ -112,7 +112,7 @@ mod tests {
                 increment_mock_ticks(1);
             }
         });
-        
+
         sleep_ms(5);
         assert!(uptime_ms() >= 5);
         MOCK_TICKS.store(0, Ordering::Relaxed);
