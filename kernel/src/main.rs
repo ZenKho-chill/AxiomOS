@@ -64,7 +64,16 @@ pub extern "C" fn _start() -> ! {
 
     // Vòng lặp chính xử lý nhập từ bàn phím
     let mut shift_pressed = false;
+    let mut last_ticks = 0;
     loop {
+        // Đọc và in ticks ngắt Timer an toàn trong main loop
+        let current_ticks =
+            arch::x86_64::idt::TIMER_TICKS.load(core::sync::atomic::Ordering::Relaxed);
+        if current_ticks - last_ticks >= 100 {
+            serial_println!("[AXIOMOS TIMER] Ticks: {}", current_ticks);
+            last_ticks = current_ticks;
+        }
+
         if let Some(event) = drivers::keyboard::poll_key_event() {
             if event.key_code == drivers::keyboard::KeyCode::LShift
                 || event.key_code == drivers::keyboard::KeyCode::RShift

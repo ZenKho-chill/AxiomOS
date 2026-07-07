@@ -178,11 +178,7 @@ extern "x86-interrupt" fn page_fault_handler(frame: &mut InterruptStackFrame, er
 pub static TIMER_TICKS: AtomicU64 = AtomicU64::new(0);
 
 extern "x86-interrupt" fn timer_interrupt_handler(_frame: &mut InterruptStackFrame) {
-    let ticks = TIMER_TICKS.fetch_add(1, Ordering::Relaxed) + 1;
-    // Mỗi 100 ticks (~5.5s với PIT tần số mặc định) in log chẩn đoán
-    if ticks % 100 == 0 {
-        serial_println!("[AXIOMOS TIMER] Ticks: {}", ticks);
-    }
+    TIMER_TICKS.fetch_add(1, Ordering::Relaxed);
 
     // SAFETY: Gửi tín hiệu EOI cho PIC IRQ 0
     unsafe {
