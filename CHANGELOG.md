@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sửa linker script để các `PT_LOAD` segment khác quyền không dùng chung một memory page khi Limine nạp kernel ELF.
 - Sửa serial boot sequence để khớp đúng các dòng log bắt buộc của Milestone 1.
 - Sửa lỗi phân quyền thực thi (Permission Denied) cho binary limine trong quá trình build image trên CI.
+- Sửa cấu hình timeout của bootloader và thời gian chờ kiểm thử QEMU trên CI để tránh việc log serial trống do CI chạy chậm.
 
 ### Changed
 - Chuyển trạng thái specs `000-project-charter`, `001-boot-and-kernel-entry` và `002-serial-logging` sang `COMPLETE` sau khi acceptance criteria đã được xác minh.
