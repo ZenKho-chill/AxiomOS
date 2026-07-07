@@ -2,7 +2,7 @@
 
 - **Feature ID**: 011-kernel-logging-subsystem
 - **Tiêu đề**: Hệ thống logging kernel có cấu trúc
-- **Trạng thái**: COMPLETE
+- **Trạng thái**: DRAFT (Giai đoạn 2: Log Filtering & Ring Buffer)
 - **Người phụ trách**: Kỹ sư trưởng AxiomOS
 - **Ngày tạo**: 2026-07-07
 - **Ngày cập nhật**: 2026-07-07
@@ -21,11 +21,11 @@ Sau Milestone 3, kernel đã có nhiều điểm ghi log trực tiếp qua `seri
 - Không cấp phát động khi ghi log.
 - Không thêm dependency mới.
 - Cung cấp unit test cho formatter prefix.
+- [Giai đoạn 2] Thêm bộ lọc log động (runtime log filtering) theo level/subsystem.
+- [Giai đoạn 2] Thêm bộ đệm xoay vòng (ring buffer log) trong bộ nhớ tĩnh của kernel.
 
 ## Không thuộc phạm vi
 
-- Không thêm ring buffer log.
-- Không thêm runtime log filtering.
 - Không ghi log ra disk hoặc filesystem.
 - Không thay thế toàn bộ log trong interrupt handler.
 - Không thêm subsystem tracing hoặc telemetry.
