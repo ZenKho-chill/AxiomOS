@@ -22,6 +22,38 @@ unsafe fn io_delay() {
     outb(0x80, 0);
 }
 
+/// Đọc một byte từ I/O port của CPU
+///
+/// # Safety
+/// Hàm này sử dụng chỉ thị IN để đọc trực tiếp cổng phần cứng, yêu cầu CPU chạy ở Ring 0.
+pub unsafe fn inb(port: u16) -> u8 {
+    let value: u8;
+    asm!("in al, dx", out("al") value, in("dx") port, options(nomem, nostack, preserves_flags));
+    value
+}
+
+/// Gửi tín hiệu End of Interrupt (EOI) cho bộ ngắt PIC
+///
+/// # Safety
+/// Hàm này ghi lệnh EOI trực tiếp ra I/O ports của PIC, yêu cầu CPU chạy ở Ring 0.
+pub unsafe fn send_eoi(irq: u8) {
+    if irq >= 8 {
+        outb(SLAVE_COMMAND, 0x20);
+    }
+    outb(MASTER_COMMAND, 0x20);
+}
+
+/// Bật nhận ngắt từ một cổng IRQ phần cứng cụ thể
+///
+/// # Safety
+/// Hàm này thay đổi các bit mask trong PIC thông qua I/O ports, yêu cầu CPU chạy ở Ring 0.
+pub unsafe fn unmask(irq: u8) {
+    let port = if irq < 8 { MASTER_DATA } else { SLAVE_DATA };
+    let irq_bit = if irq < 8 { irq } else { irq - 8 };
+    let value = inb(port) & !(1 << irq_bit);
+    outb(port, value);
+}
+
 /// Khởi tạo và remap bộ ngắt 8259 PIC
 ///
 /// # Safety

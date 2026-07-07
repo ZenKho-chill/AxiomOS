@@ -2,10 +2,10 @@
 
 - **Feature ID**: 006-keyboard-input
 - **Tiêu đề**: Đầu vào bàn phím PS/2
-- **Trạng thái**: DRAFT
+- **Trạng thái**: COMPLETE
 - **Người phụ trách**: Kỹ sư trưởng AxiomOS
 - **Ngày tạo**: 2026-07-06
-- **Ngày cập nhật**: 2026-07-06
+- **Ngày cập nhật**: 2026-07-07
 
 ---
 
@@ -120,6 +120,22 @@ struct KeyboardBuffer<const N: usize> {
 
 - Có thể tắt `init_keyboard` và giữ hệ thống serial-only.
 - Không được rollback bằng fake key event không đến từ QEMU input.
+
+## Bằng chứng hoàn tất
+
+- Khởi tạo ngắt Timer (IRQ 0) và Keyboard (IRQ 1) thành công.
+- Xây dựng driver bàn phím `drivers::keyboard` giải mã Scancode Set 1 kết hợp Ring Buffer tĩnh spinlock Mutex an toàn.
+- Kiểm chứng thành công việc nhận phím và tổ hợp phím Shift qua giả lập QEMU monitor. Log serial chẩn đoán ghi nhận:
+  ```text
+  [AXIOMOS TIMER] Ticks: 100
+  [AXIOMOS TIMER] Ticks: 200
+  [KEY] Pressed char: a
+  [KEY] Released: A
+  [KEY] Pressed special: LShift
+  [KEY] Pressed char: A
+  [KEY] Released: A
+  [KEY] Released: LShift
+  ```
 
 ## Câu hỏi mở
 
