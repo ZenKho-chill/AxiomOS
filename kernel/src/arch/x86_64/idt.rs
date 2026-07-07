@@ -4,6 +4,7 @@
 
 use crate::serial_println;
 use core::arch::asm;
+use core::sync::atomic::{AtomicU64, Ordering};
 
 #[derive(Clone, Copy)]
 #[repr(C, packed)]
@@ -83,6 +84,10 @@ pub unsafe fn init() {
     IDT.entries[8].set_handler(double_fault_handler as *const () as u64, cs);
     IDT.entries[13].set_handler(general_protection_fault_handler as *const () as u64, cs);
     IDT.entries[14].set_handler(page_fault_handler as *const () as u64, cs);
+
+    // Đăng ký các ngắt phần cứng (IRQ)
+    IDT.entries[0x20].set_handler(timer_interrupt_handler as *const () as u64, cs);
+    IDT.entries[0x21].set_handler(keyboard_interrupt_handler as *const () as u64, cs);
 
     let descriptor = IdtDescriptor {
         limit: (core::mem::size_of::<Idt>() - 1) as u16,
@@ -164,5 +169,32 @@ extern "x86-interrupt" fn page_fault_handler(frame: &mut InterruptStackFrame, er
         unsafe {
             asm!("hlt");
         }
+    }
+}
+
+// --- Hardware Interrupt Handlers ---
+
+/// Bộ đếm tick tĩnh cho ngắt Timer
+pub static TIMER_TICKS: AtomicU64 = AtomicU64::new(0);
+
+extern "x86-interrupt" fn timer_interrupt_handler(_frame: &mut InterruptStackFrame) {
+    let ticks = TIMER_TICKS.fetch_add(1, Ordering::Relaxed) + 1;
+    // Mỗi 100 ticks (~5.5s với PIT tần số mặc định) in log chẩn đoán
+    if ticks % 100 == 0 {
+        serial_println!("[AXIOMOS TIMER] Ticks: {}", ticks);
+    }
+
+    // SAFETY: Gửi tín hiệu EOI cho PIC IRQ 0
+    unsafe {
+        crate::drivers::pic::send_eoi(0);
+    }
+}
+
+extern "x86-interrupt" fn keyboard_interrupt_handler(_frame: &mut InterruptStackFrame) {
+    // SAFETY: Đọc dữ liệu scan code từ cổng bàn phím 0x60 và gửi EOI cho PIC IRQ 1
+    unsafe {
+        let scancode = crate::drivers::pic::inb(0x60);
+        crate::drivers::keyboard::handle_scancode(scancode);
+        crate::drivers::pic::send_eoi(1);
     }
 }

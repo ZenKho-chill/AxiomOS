@@ -40,6 +40,14 @@ pub extern "C" fn _start() -> ! {
         drivers::pic::init();
     }
 
+    // Bật ngắt phần cứng trên PIC và CPU
+    // SAFETY: Bật ngắt thông qua unmask và sti yêu cầu đặc quyền Ring 0.
+    unsafe {
+        drivers::pic::unmask(0); // Timer (IRQ 0)
+        drivers::pic::unmask(1); // Keyboard (IRQ 1)
+        core::arch::asm!("sti");
+    }
+
     // Kiểm chứng ngắt Breakpoint (int3)
     // SAFETY: int3 kích hoạt breakpoint exception hợp lệ đã đăng ký handler trong IDT
     unsafe {
@@ -54,8 +62,36 @@ pub extern "C" fn _start() -> ! {
     boot_log("[AXIOMOS] Serial logger initialized");
     boot_log("[AXIOMOS] System halted");
 
+    // Vòng lặp chính xử lý nhập từ bàn phím
+    let mut shift_pressed = false;
     loop {
-        // SAFETY: Dừng CPU sau khi hoàn tất boot chẩn đoán.
+        if let Some(event) = drivers::keyboard::poll_key_event() {
+            if event.key_code == drivers::keyboard::KeyCode::LShift
+                || event.key_code == drivers::keyboard::KeyCode::RShift
+            {
+                shift_pressed = event.pressed;
+            }
+
+            if event.pressed {
+                if let Some(c) = drivers::keyboard::keycode_to_char(event.key_code, shift_pressed) {
+                    serial_println!("[KEY] Pressed char: {}", c);
+                    console::framebuffer::framebuffer_println(format_args!(
+                        "[KEY] Pressed char: {}",
+                        c
+                    ));
+                } else {
+                    serial_println!("[KEY] Pressed special: {:?}", event.key_code);
+                    console::framebuffer::framebuffer_println(format_args!(
+                        "[KEY] Pressed special: {:?}",
+                        event.key_code
+                    ));
+                }
+            } else {
+                serial_println!("[KEY] Released: {:?}", event.key_code);
+            }
+        }
+
+        // SAFETY: hlt dừng CPU tạm thời cho tới khi ngắt tiếp theo xảy ra để tiết kiệm năng lượng
         unsafe {
             core::arch::asm!("hlt");
         }
