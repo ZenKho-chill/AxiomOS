@@ -21,13 +21,10 @@ pub unsafe extern "C" fn switch_context(old_stack: *mut u64, new_stack: u64) {
         "push r13",
         "push r14",
         "push r15",
-        
         // 2. Lưu con trỏ stack hiện tại (rsp) vào old_stack
         "mov [rdi], rsp",
-        
         // 3. Nạp con trỏ stack của task mới (new_stack) vào rsp
         "mov rsp, rsi",
-        
         // 4. Khôi phục các callee-saved registers của task mới từ stack của nó
         "pop r15",
         "pop r14",
@@ -35,7 +32,6 @@ pub unsafe extern "C" fn switch_context(old_stack: *mut u64, new_stack: u64) {
         "pop r12",
         "pop rbx",
         "pop rbp",
-        
         // 5. Trở về (nhảy tới RIP được lưu trên stack mới)
         "ret"
     );

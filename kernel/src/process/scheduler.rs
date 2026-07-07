@@ -1,10 +1,10 @@
 //! Bộ lập lịch tiến trình cộng tác (Cooperative Task Scheduler) toàn cục
 
-use alloc::boxed::Box;
-use alloc::collections::VecDeque;
-use crate::utils::sync::SpinlockIrqSave;
 use crate::process::task::{Task, TaskState};
 use crate::serial_println;
+use crate::utils::sync::SpinlockIrqSave;
+use alloc::boxed::Box;
+use alloc::collections::VecDeque;
 
 /// Quản lý danh sách ready tasks và task hiện tại của Scheduler
 struct Scheduler {
@@ -36,7 +36,7 @@ static SCHEDULER: SpinlockIrqSave<Scheduler> = SpinlockIrqSave::new(Scheduler::n
 /// Khởi tạo scheduler và đăng ký luồng chạy hiện tại làm main task
 pub fn init() {
     let mut sched = SCHEDULER.lock();
-    
+
     // Main task đại diện cho luồng chính khởi động của kernel.
     // Stack của nó chính là stack khởi động đang chạy, nên ta dùng mảng rỗng để không cấp phát thừa.
     let main_task = Box::new(Task {
@@ -45,7 +45,7 @@ pub fn init() {
         stack_ptr: 0,
         state: TaskState::Running,
     });
-    
+
     sched.current_task = Some(main_task);
 }
 
@@ -75,15 +75,15 @@ pub fn yield_now() {
                 current.state = TaskState::Ready;
                 if let Some(mut next) = sched.ready_queue.pop_front() {
                     next.state = TaskState::Running;
-                    
+
                     // Do current và next bọc trong Box cố định địa chỉ heap,
                     // việc push/pop Box không làm lệch địa chỉ của stack_ptr.
                     let old_stack_ptr_ref = &mut current.stack_ptr as *mut u64;
                     let new_stack_ptr = next.stack_ptr;
-                    
+
                     sched.ready_queue.push_back(current);
                     sched.current_task = Some(next);
-                    
+
                     switch_args = Some((old_stack_ptr_ref, new_stack_ptr));
                 } else {
                     // Khôi phục lại nếu không lấy được next task
@@ -157,13 +157,19 @@ mod tests {
 
     static mut TEST_VAL: u32 = 0;
     fn test_task_1() {
-        unsafe { TEST_VAL = 10; }
+        unsafe {
+            TEST_VAL = 10;
+        }
         yield_now();
-        unsafe { TEST_VAL = 20; }
+        unsafe {
+            TEST_VAL = 20;
+        }
     }
 
     fn test_task_2() {
-        unsafe { TEST_VAL = 30; }
+        unsafe {
+            TEST_VAL = 30;
+        }
         yield_now();
     }
 

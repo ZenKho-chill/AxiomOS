@@ -16,8 +16,8 @@ pub enum TaskState {
 /// Task Control Block (TCB) lưu trữ ngữ cảnh của một luồng thực thi trong nhân
 pub struct Task {
     pub id: u32,
-    pub stack: Box<[u8]>,      // Vùng nhớ stack được cấp phát động trên heap
-    pub stack_ptr: u64,        // Giá trị thanh ghi RSP hiện tại của task này
+    pub stack: Box<[u8]>, // Vùng nhớ stack được cấp phát động trên heap
+    pub stack_ptr: u64,   // Giá trị thanh ghi RSP hiện tại của task này
     pub state: TaskState,
 }
 
@@ -88,7 +88,7 @@ mod tests {
         assert_eq!(task.id, 1);
         assert_eq!(task.state, TaskState::Ready);
         assert_eq!(task.stack.len(), STACK_SIZE);
-        
+
         // RSP phải trỏ vào trong stack
         let stack_start = task.stack.as_ptr() as u64;
         let stack_end = stack_start + STACK_SIZE as u64;
