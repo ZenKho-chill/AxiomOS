@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Thêm hệ thống quản lý thời gian (Timekeeping) hỗ trợ cấu hình PIT 1000Hz, API uptime_ms() và sleep_ms().
+- Cập nhật Spec 013-system-timekeeping sang trạng thái COMPLETE.
 - Thêm cơ chế lọc log động ở runtime và bộ đệm xoay vòng ring buffer tĩnh trong kernel cho Milestone 4.
 - Thêm các thành phần đồng bộ hóa luồng cơ bản tự viết gồm Spinlock, SpinlockIrqSave và Mutex an toàn cho ngắt CPU.
 - Thêm Spec 012 và tài liệu kiến trúc ADR-005 cho cơ chế đồng bộ hóa tối giản.

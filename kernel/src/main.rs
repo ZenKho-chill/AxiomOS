@@ -45,6 +45,8 @@ pub extern "C" fn _start() -> ! {
         logging::boot("IDT initialized");
 
         drivers::pic::init();
+        utils::time::init();
+        logging::boot("PIT initialized at 1000Hz");
     }
 
     // Kiểm chứng ngắt Breakpoint (int3)
@@ -95,6 +97,9 @@ pub extern "C" fn _start() -> ! {
 
                             // Chạy chẩn đoán bộ lọc log và ring buffer
                             run_logging_diagnostics();
+
+                            // Chạy chẩn đoán bộ đếm thời gian
+                            run_timekeeping_diagnostics();
                         }
                     }
                 }
@@ -304,4 +309,45 @@ fn run_logging_diagnostics() {
     dump_log_buffer();
 
     serial_println!("[AXIOMOS LOG] Chạy chẩn đoán bộ lọc log và ring buffer: THÀNH CÔNG");
+}
+
+#[cfg(not(test))]
+fn run_timekeeping_diagnostics() {
+    use utils::time::{sleep_ms, uptime_ms};
+
+    serial_println!("[AXIOMOS TIME] Chạy chẩn đoán đồng hồ thời gian...");
+
+    // 1. Kiểm chứng việc đọc uptime tăng lên
+    let start_time = uptime_ms();
+
+    // Bật ngắt tạm thời để bộ đếm ticks có thể hoạt động trong lúc chẩn đoán
+    // (Vì ngắt ngầm định chưa bật cho đến cuối _start, ta cần bật ngắt ở đây để timer chạy)
+    let is_enabled_before = arch::x86_64::instructions::are_interrupts_enabled();
+    if !is_enabled_before {
+        unsafe {
+            drivers::pic::unmask(0); // Bật IRQ 0
+            core::arch::asm!("sti");
+        }
+    }
+
+    // 2. Thử sleep_ms 50ms và đo lường thời gian thực tế trôi qua
+    sleep_ms(50);
+
+    let end_time = uptime_ms();
+    let elapsed = end_time - start_time;
+
+    // Khôi phục lại trạng thái ngắt ban đầu
+    if !is_enabled_before {
+        unsafe {
+            core::arch::asm!("cli");
+        }
+    }
+
+    serial_println!(
+        "[AXIOMOS TIME] Đã ngủ 50ms, thời gian đo được: {} ms",
+        elapsed
+    );
+    assert!(elapsed >= 50, "Lỗi: sleep_ms kết thúc quá sớm!");
+
+    serial_println!("[AXIOMOS TIME] Chạy chẩn đoán đồng hồ thời gian: THÀNH CÔNG");
 }
