@@ -2,7 +2,7 @@ name: Continuous Integration
 
 on:
   push:
-    branches: [ main, "milestone-*", "feature/*" ]
+    branches: [ main, "feature/*" ]
   pull_request:
     branches: [ main, "milestone-*" ]
 
