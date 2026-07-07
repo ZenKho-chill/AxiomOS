@@ -47,12 +47,6 @@ struct Idt {
     entries: [IdtEntry; 256],
 }
 
-#[repr(C, packed)]
-struct IdtDescriptor {
-    limit: u16,
-    base: u64,
-}
-
 // Bảng IDT tĩnh của Kernel
 static mut IDT: Idt = Idt {
     entries: [IdtEntry::missing(); 256],
@@ -89,13 +83,19 @@ pub unsafe fn init() {
     IDT.entries[0x20].set_handler(timer_interrupt_handler as *const () as u64, cs);
     IDT.entries[0x21].set_handler(keyboard_interrupt_handler as *const () as u64, cs);
 
-    let descriptor = IdtDescriptor {
-        limit: (core::mem::size_of::<Idt>() - 1) as u16,
-        base: core::ptr::addr_of!(IDT) as u64,
-    };
+    let base = core::ptr::addr_of!(IDT) as u64;
+    let limit = (core::mem::size_of::<Idt>() - 1) as u16;
 
-    // SAFETY: lidt yêu cầu con trỏ descriptor hợp lệ.
-    asm!("lidt [{}]", in(reg) &descriptor, options(readonly, nostack, preserves_flags));
+    // SAFETY: Dựng descriptor trực tiếp trên stack để nạp IDT an toàn, tránh lỗi cắt địa chỉ 64-bit của compiler
+    asm!(
+        "sub rsp, 16",
+        "mov [rsp + 2], {base}",
+        "mov [rsp], {limit:x}",
+        "lidt [rsp]",
+        "add rsp, 16",
+        base = in(reg) base,
+        limit = in(reg) limit,
+    );
 }
 
 // --- Exception Handlers ---
