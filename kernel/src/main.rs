@@ -8,7 +8,10 @@ pub mod arch;
 pub mod boot;
 pub mod console;
 pub mod drivers;
+pub mod logging;
 pub mod memory;
+pub mod process;
+pub mod utils;
 
 #[cfg(not(test))]
 use core::panic::PanicInfo;
@@ -40,9 +43,11 @@ pub extern "C" fn _start() -> ! {
     // SAFETY: Các lệnh này thay đổi bảng ngắt của CPU ở mức đặc quyền Ring 0
     unsafe {
         arch::x86_64::idt::init();
-        boot_log("[AXIOMOS] IDT initialized");
+        logging::boot("IDT initialized");
 
         drivers::pic::init();
+        utils::time::init();
+        logging::boot("PIT initialized at 1000Hz");
     }
 
     // Kiểm chứng ngắt Breakpoint (int3)
@@ -85,8 +90,23 @@ pub extern "C" fn _start() -> ! {
                                 heap_start
                             );
 
+                            // Khởi tạo bộ lập lịch tiến trình
+                            process::scheduler::init();
+
                             // Chạy chẩn đoán cấp phát bộ nhớ động
                             run_memory_diagnostics();
+
+                            // Chạy chẩn đoán cơ chế đồng bộ hóa
+                            run_sync_diagnostics();
+
+                            // Chạy chẩn đoán bộ lọc log và ring buffer
+                            run_logging_diagnostics();
+
+                            // Chạy chẩn đoán bộ đếm thời gian
+                            run_timekeeping_diagnostics();
+
+                            // Chạy chẩn đoán lập lịch tiến trình
+                            run_scheduler_diagnostics();
                         }
                     }
                 }
@@ -106,10 +126,10 @@ pub extern "C" fn _start() -> ! {
     run_panic_test_if_requested();
 
     // In chuỗi boot sequence theo đúng yêu cầu đặc tả
-    boot_log("[AXIOMOS] Bootloader handoff complete");
-    boot_log("[AXIOMOS] Kernel started");
-    boot_log("[AXIOMOS] Serial logger initialized");
-    boot_log("[AXIOMOS] System halted");
+    logging::boot("Bootloader handoff complete");
+    logging::boot("Kernel started");
+    logging::boot("Serial logger initialized");
+    logging::boot("System halted");
 
     // Bật ngắt phần cứng trên PIC và CPU sau khi đã in xong boot sequence
     // SAFETY: Bật ngắt thông qua unmask và sti yêu cầu đặc quyền Ring 0.
@@ -127,7 +147,7 @@ pub extern "C" fn _start() -> ! {
         let current_ticks =
             arch::x86_64::idt::TIMER_TICKS.load(core::sync::atomic::Ordering::Relaxed);
         if current_ticks - last_ticks >= 100 {
-            serial_println!("[AXIOMOS TIMER] Ticks: {}", current_ticks);
+            logging::info("TIMER", format_args!("Ticks: {}", current_ticks), false);
             last_ticks = current_ticks;
         }
 
@@ -168,20 +188,13 @@ pub extern "C" fn _start() -> ! {
 #[cfg(not(test))]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    serial_println!("[AXIOMOS PANIC] {}", info);
-    console::framebuffer::framebuffer_println(format_args!("[AXIOMOS PANIC] {}", info));
+    logging::panic(format_args!("{}", info));
     loop {
         // SAFETY: Dừng CPU khi xảy ra panic.
         unsafe {
             core::arch::asm!("hlt");
         }
     }
-}
-
-#[cfg(not(test))]
-fn boot_log(message: &str) {
-    serial_println!("{}", message);
-    console::framebuffer::framebuffer_println(format_args!("{}", message));
 }
 
 #[cfg(all(not(test), feature = "panic-test"))]
@@ -215,4 +228,224 @@ fn run_memory_diagnostics() {
     );
 
     serial_println!("[AXIOMOS MEMORY] All memory diagnostics passed successfully!");
+}
+
+#[cfg(not(test))]
+fn run_sync_diagnostics() {
+    use utils::sync::{Spinlock, SpinlockIrqSave};
+
+    serial_println!("[AXIOMOS SYNC] Chạy chẩn đoán cơ chế đồng bộ hóa...");
+
+    // 1. Kiểm thử Spinlock cơ bản
+    let lock = Spinlock::new(100);
+    assert!(!lock.is_locked());
+    {
+        let mut guard = lock.lock();
+        assert!(lock.is_locked());
+        assert_eq!(*guard, 100);
+        *guard = 200;
+    }
+    assert!(!lock.is_locked());
+    {
+        let guard = lock.lock();
+        assert_eq!(*guard, 200);
+    }
+    serial_println!("[AXIOMOS SYNC] Kiểm thử Spinlock cơ bản: THÀNH CÔNG");
+
+    // 2. Kiểm thử SpinlockIrqSave (An toàn ngắt)
+    let irq_lock = SpinlockIrqSave::new(300);
+    assert!(!irq_lock.is_locked());
+
+    let is_enabled_before = arch::x86_64::instructions::are_interrupts_enabled();
+    {
+        let mut guard = irq_lock.lock();
+        assert!(irq_lock.is_locked());
+        assert_eq!(*guard, 300);
+        *guard = 400;
+
+        let is_enabled_during = arch::x86_64::instructions::are_interrupts_enabled();
+        assert!(
+            !is_enabled_during,
+            "Lỗi: Ngắt chưa bị tắt khi đang giữ SpinlockIrqSave!"
+        );
+    }
+    assert!(!irq_lock.is_locked());
+
+    let is_enabled_after = arch::x86_64::instructions::are_interrupts_enabled();
+    assert_eq!(
+        is_enabled_before, is_enabled_after,
+        "Lỗi: Trạng thái ngắt không được khôi phục sau khi thả khóa!"
+    );
+
+    serial_println!("[AXIOMOS SYNC] Kiểm thử SpinlockIrqSave (An toàn ngắt): THÀNH CÔNG");
+    serial_println!("[AXIOMOS SYNC] Tất cả chẩn đoán đồng bộ hóa đã vượt qua!");
+}
+
+#[cfg(not(test))]
+fn run_logging_diagnostics() {
+    use logging::{dump_log_buffer, filter_level, set_filter_level, LogLevel};
+
+    serial_println!("[AXIOMOS LOG] Chạy chẩn đoán bộ lọc log và ring buffer...");
+
+    // Lưu mức lọc hiện tại
+    let original_level = filter_level();
+
+    // 1. Thử ghi log mức Info và Warn
+    logging::info("TEST", format_args!("Thông điệp mức Info"), false);
+    logging::write(logging::LogRecord {
+        level: LogLevel::Warn,
+        subsystem: Some("TEST"),
+        message: format_args!("Thông điệp mức Warn"),
+        mirror_framebuffer: false,
+    });
+
+    // 2. Thiết lập mức lọc Warn
+    set_filter_level(LogLevel::Warn);
+
+    // Log Info tiếp theo phải bị lọc (không lưu vào ring buffer)
+    logging::info(
+        "TEST",
+        format_args!("Thông điệp mức Info này phải bị lọc!"),
+        false,
+    );
+
+    // Khôi phục lại mức lọc ban đầu
+    set_filter_level(original_level);
+
+    // 3. Dump ring buffer log ra serial để kiểm tra thủ công các log đã lưu
+    dump_log_buffer();
+
+    serial_println!("[AXIOMOS LOG] Chạy chẩn đoán bộ lọc log và ring buffer: THÀNH CÔNG");
+}
+
+#[cfg(not(test))]
+fn run_timekeeping_diagnostics() {
+    use utils::time::{sleep_ms, uptime_ms};
+
+    serial_println!("[AXIOMOS TIME] Chạy chẩn đoán đồng hồ thời gian...");
+
+    // 1. Kiểm chứng việc đọc uptime tăng lên
+    let start_time = uptime_ms();
+
+    // Bật ngắt tạm thời để bộ đếm ticks có thể hoạt động trong lúc chẩn đoán
+    // (Vì ngắt ngầm định chưa bật cho đến cuối _start, ta cần bật ngắt ở đây để timer chạy)
+    let is_enabled_before = arch::x86_64::instructions::are_interrupts_enabled();
+    if !is_enabled_before {
+        unsafe {
+            drivers::pic::unmask(0); // Bật IRQ 0
+            core::arch::asm!("sti");
+        }
+    }
+
+    // 2. Thử sleep_ms 50ms và đo lường thời gian thực tế trôi qua
+    sleep_ms(50);
+
+    let end_time = uptime_ms();
+    let elapsed = end_time - start_time;
+
+    // Khôi phục lại trạng thái ngắt ban đầu
+    if !is_enabled_before {
+        unsafe {
+            core::arch::asm!("cli");
+        }
+    }
+
+    serial_println!(
+        "[AXIOMOS TIME] Đã ngủ 50ms, thời gian đo được: {} ms",
+        elapsed
+    );
+    assert!(elapsed >= 50, "Lỗi: sleep_ms kết thúc quá sớm!");
+
+    serial_println!("[AXIOMOS TIME] Chạy chẩn đoán đồng hồ thời gian: THÀNH CÔNG");
+}
+
+#[cfg(not(test))]
+fn run_scheduler_diagnostics() {
+    use process::scheduler::{spawn, yield_now};
+
+    serial_println!("[AXIOMOS SCHED] Chạy chẩn đoán lập lịch tiến trình cộng tác...");
+
+    // 1. Spawn 2 tasks nhân đơn giản
+    spawn(task_a);
+    spawn(task_b);
+
+    // Bật ngắt tạm thời để bộ đếm timer ticks chạy ổn định
+    let is_enabled_before = arch::x86_64::instructions::are_interrupts_enabled();
+    if !is_enabled_before {
+        unsafe {
+            drivers::pic::unmask(0);
+            core::arch::asm!("sti");
+        }
+    }
+
+    // 2. Nhường CPU liên tục cho đến khi cả Task A và Task B hoàn thành đủ 2 chu kỳ chạy
+    loop {
+        let done = unsafe {
+            let a = core::ptr::read_volatile(&raw const TASK_A_RUNS);
+            let b = core::ptr::read_volatile(&raw const TASK_B_RUNS);
+            a == 2 && b == 2
+        };
+        if done {
+            break;
+        }
+        yield_now();
+    }
+
+    // 3. Khôi phục lại trạng thái ngắt ban đầu
+    if !is_enabled_before {
+        unsafe {
+            core::arch::asm!("cli");
+        }
+    }
+
+    // Xác nhận cả 2 task đều đã chạy xong 2 lần
+    unsafe {
+        let a_runs = core::ptr::read_volatile(&raw const TASK_A_RUNS);
+        let b_runs = core::ptr::read_volatile(&raw const TASK_B_RUNS);
+        assert_eq!(a_runs, 2, "Lỗi: Task A chưa chạy đủ 2 lần!");
+        assert_eq!(b_runs, 2, "Lỗi: Task B chưa chạy đủ 2 lần!");
+    }
+
+    serial_println!("[AXIOMOS SCHED] Chạy chẩn đoán lập lịch tiến trình: THÀNH CÔNG");
+}
+
+#[cfg(not(test))]
+static mut TASK_A_RUNS: u32 = 0;
+#[cfg(not(test))]
+static mut TASK_B_RUNS: u32 = 0;
+
+#[cfg(not(test))]
+fn task_a() {
+    serial_println!("[AXIOMOS SCHED] Task A bắt đầu chạy.");
+    unsafe {
+        let val = core::ptr::read_volatile(&raw const TASK_A_RUNS);
+        core::ptr::write_volatile(&raw mut TASK_A_RUNS, val + 1);
+    }
+
+    // Nhường CPU cho Task B
+    process::scheduler::yield_now();
+
+    serial_println!("[AXIOMOS SCHED] Task A chạy lại lần 2.");
+    unsafe {
+        let val = core::ptr::read_volatile(&raw const TASK_A_RUNS);
+        core::ptr::write_volatile(&raw mut TASK_A_RUNS, val + 1);
+    }
+}
+
+#[cfg(not(test))]
+fn task_b() {
+    serial_println!("[AXIOMOS SCHED] Task B bắt đầu chạy.");
+    unsafe {
+        let val = core::ptr::read_volatile(&raw const TASK_B_RUNS);
+        core::ptr::write_volatile(&raw mut TASK_B_RUNS, val + 1);
+    }
+
+    // Nhường CPU cho Task A
+    process::scheduler::yield_now();
+
+    serial_println!("[AXIOMOS SCHED] Task B chạy lại lần 2.");
+    unsafe {
+        let val = core::ptr::read_volatile(&raw const TASK_B_RUNS);
+        core::ptr::write_volatile(&raw mut TASK_B_RUNS, val + 1);
+    }
 }

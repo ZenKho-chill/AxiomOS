@@ -2,7 +2,7 @@
 //!
 //! Giải mã Scancode Set 1 thành KeyEvent và lưu trữ trong bộ đệm an toàn thông qua Spinlock Mutex.
 
-use spin::Mutex;
+use crate::utils::sync::SpinlockIrqSave;
 
 /// Các mã phím thông dụng được hỗ trợ
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -95,7 +95,7 @@ struct KeyboardBuffer {
     tail: usize,
 }
 
-static KEYBOARD_BUFFER: Mutex<KeyboardBuffer> = Mutex::new(KeyboardBuffer {
+static KEYBOARD_BUFFER: SpinlockIrqSave<KeyboardBuffer> = SpinlockIrqSave::new(KeyboardBuffer {
     data: [None; BUFFER_SIZE],
     head: 0,
     tail: 0,
