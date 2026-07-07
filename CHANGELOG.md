@@ -33,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Thêm Spec 011, ADR 004 và logging facade nội bộ cho Milestone 4 với `LogRecord`, level, subsystem và mirror framebuffer tùy chọn.
 
 ### Fixed
+- Sửa cấu hình CI chỉ chạy push trên main nhằm loại bỏ trùng lặp workflow kiểm thử khi đẩy commit lên các nhánh feature đang có PR mở.
+- Sửa cấu hình CodeRabbit để tự động review cả PR nháp (Draft PR) trên mọi nhánh.
 - Sửa cấu hình Limine 7.x để entry AxiomOS dùng `PROTOCOL=limine` và `KERNEL_PATH=boot:///boot/kernel.elf`, tránh lỗi `[config file contains no valid entries]`.
 - Sửa linker script để các `PT_LOAD` segment khác quyền không dùng chung một memory page khi Limine nạp kernel ELF.
 - Sửa serial boot sequence để khớp đúng các dòng log bắt buộc của Milestone 1.
