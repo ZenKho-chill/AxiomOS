@@ -1,0 +1,116 @@
+language: "vi-VN"
+tone_instructions: "Review ngan gon, truc tiep, uu tien correctness, safety va rui ro kien truc."
+
+reviews:
+  profile: "assertive"
+  request_changes_workflow: false
+  high_level_summary: true
+  review_status: true
+  review_details: true
+  poem: false
+  collapse_walkthrough: true
+  changed_files_summary: true
+  sequence_diagrams: false
+  estimate_code_review_effort: true
+
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_incremental_review: true
+    auto_pause_after_reviewed_commits: 5
+    base_branches:
+      - "main"
+      - "milestone-.*"
+      - "feature/.*"
+    ignore_title_keywords:
+      - "WIP"
+      - "DO NOT MERGE"
+      - "[skip review]"
+
+  path_filters:
+    - "AGENTS.md"
+    - "Cargo.toml"
+    - "Makefile"
+    - "rust-toolchain.toml"
+    - ".coderabbit.yaml"
+    - ".github/**"
+    - "assets/boot/**"
+    - "docs/**"
+    - "kernel/**"
+    - "scripts/**"
+    - "tools/**"
+    - "userspace/**"
+    - "!target/**"
+    - "!assets/limine/**"
+    - "!**/*.img"
+    - "!**/*.iso"
+    - "!**/*.bin"
+    - "!**/*.elf"
+    - "!**/*.o"
+    - "!**/*.d"
+    - "!**/*.log"
+
+  path_instructions:
+    - path: "kernel/**/*.rs"
+      instructions: |
+        - Kiem tra moi thay doi kernel theo quy tac no_std/no_main cua AxiomOS.
+        - Flag moi unsafe block thieu safety comment ngay phia tren.
+        - Flag unsafe function thieu Preconditions, Postconditions, Memory safety assumptions hoac CPU state assumptions.
+        - Flag unwrap/expect trong kernel runtime path.
+        - Flag hidden allocation, allocation trong interrupt handler, blocking trong interrupt handler, hoac panic sau khi kernel init xong.
+        - Kiem tra comment public API bang tieng Viet va identifier bang tieng Anh.
+        - Khong chap nhan fake implementation chi de in log thanh cong.
+
+    - path: "kernel/src/memory/**"
+      instructions: |
+        - Doi chieu voi Spec 004 va ADR-003.
+        - Frame allocator chi duoc cap phat frame thuoc Limine memory map type usable.
+        - Kiem tra double-free, free frame reserved/kernel/MMIO, tinh sai allocated/free stats, va fallback HHDM khong hop le.
+        - Neu thay doi memory API co nguy co thanh ABI, yeu cau cap nhat docs/design/kernel-api.md.
+
+    - path: "kernel/src/arch/**"
+      instructions: |
+        - Kiem tra hardware-specific type khong bi expose ra ngoai arch boundary.
+        - Moi thao tac CPU register, IDT, GDT, paging hoac asm phai co safety comment va ly do ro rang.
+        - Flag hardcode dia chi memory neu khong duoc mo ta trong linker script, spec hoac ADR.
+
+    - path: "kernel/src/drivers/**"
+      instructions: |
+        - Driver chi duoc truy cap I/O port trong module driver hoac arch phu hop.
+        - Interrupt handler khong duoc allocation, blocking hoac log qua duong co the allocation.
+        - Moi driver moi phai co test strategy trong QEMU hoac hardware test plan.
+
+    - path: "docs/specs/**"
+      instructions: |
+        - Kiem tra Spec Kit: Feature ID, trang thai, owner, ngay tao/cap nhat, non-goals, dependencies, ADR lien quan, interfaces, error handling, logging, security, test plan, acceptance criteria va rollback/removal.
+        - Acceptance criteria phai dung Given / When / Then.
+        - Khong duoc approve spec neu thieu non-goals, acceptance criteria, test plan, dependencies hoac pham vi anh huong.
+
+    - path: "docs/**"
+      instructions: |
+        - Tai lieu phai bang tieng Viet, ro rang va khong claim bare-metal/hardware support neu chua co bang chung test.
+        - Flag noi dung xung dot voi AGENTS.md, roadmap, spec hoac ADR.
+
+    - path: "scripts/**"
+      instructions: |
+        - Kiem tra script chay duoc tren Linux/WSL2 va khong phu thuoc vao state ngoai repo neu khong duoc document.
+        - Flag command destructive, ghi ngoai workspace, hoac bypass loi build/test.
+        - Script QEMU/build image phai giu serial output kiem chung duoc.
+
+    - path: ".github/workflows/**"
+      instructions: |
+        - CI phai chay formatting, linting, kernel build, image build va QEMU boot verification khi thay doi boot/kernel.
+        - Flag workflow bo qua loi bang cach nuot exit code.
+
+    - path: "**/Cargo.toml"
+      instructions: |
+        - Dependency moi phai duoc ghi trong spec hoac ADR lien quan.
+        - Kernel dependency phai tuong thich no_std va khong them allocation an ngoai y muon.
+
+    - path: "CHANGELOG.md"
+      instructions: |
+        - Entry changelog phai cu the, khong chung chung.
+        - Thay doi user-visible hoac developer-visible phai nam trong Unreleased dung nhom Added/Changed/Fixed/Security.
+
+chat:
+  auto_reply: true
