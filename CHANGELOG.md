@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Thêm trình đọc FAT32 read-only kernel-internal qua `BlockDevice`, hỗ trợ mount BPB, liệt kê root directory 8.3 và đọc file theo cluster chain bằng test image `RamDisk`.
 - Thêm Spec 016 `virtual-file-system` ở trạng thái APPROVED và ADR-006 cho thiết kế VFS tối giản với một root mount read-only.
 - Thêm lớp trừu tượng hóa thiết bị khối (Block Device Abstraction) hỗ trợ trait BlockDevice và mock RamDisk.
 - Cập nhật Spec 015-block-device-abstraction sang trạng thái COMPLETE.
