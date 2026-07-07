@@ -67,6 +67,8 @@ rm -f target/esp.img
 
 # 8. Cài đặt boot sector của Limine lên image
 echo "[AXIOMOS] Cài đặt boot sector Limine..."
+chmod +x assets/limine/limine
 assets/limine/limine bios-install target/axiomOS.img
 
 echo "[AXIOMOS] Đóng gói đĩa ảo target/axiomOS.img thành công!"
+

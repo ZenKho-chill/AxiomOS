@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sửa cấu hình Limine 7.x để entry AxiomOS dùng `PROTOCOL=limine` và `KERNEL_PATH=boot:///boot/kernel.elf`, tránh lỗi `[config file contains no valid entries]`.
 - Sửa linker script để các `PT_LOAD` segment khác quyền không dùng chung một memory page khi Limine nạp kernel ELF.
 - Sửa serial boot sequence để khớp đúng các dòng log bắt buộc của Milestone 1.
+- Sửa lỗi phân quyền thực thi (Permission Denied) cho binary limine trong quá trình build image trên CI.
 
 ### Changed
 - Chuyển trạng thái specs `000-project-charter`, `001-boot-and-kernel-entry` và `002-serial-logging` sang `COMPLETE` sau khi acceptance criteria đã được xác minh.
