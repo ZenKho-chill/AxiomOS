@@ -169,7 +169,7 @@ struct LimineMemoryMapResponse {
 pub struct LimineMmapEntry {
     pub base: u64,
     pub length: u64,
-    pub entry_type: u32,
+    pub entry_type: u64,
 }
 
 #[used]

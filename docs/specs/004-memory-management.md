@@ -78,12 +78,14 @@ trait FrameAllocator {
 - `PhysFrame`: frame vật lý 4 KiB.
 - `MemoryRegion`: vùng memory đã chuẩn hóa.
 - `MemoryStats`: tổng usable bytes, usable frames, allocated frames, free frames và số memory-map region đã đọc.
-- `MemoryError`: lỗi memory map, HHDM, hết frame, frame ngoài vùng usable, double-free, địa chỉ frame không căn lề hoặc allocator chưa khởi tạo.
+- `MemoryError`: lỗi memory map, HHDM, hết frame, bitmap quá lớn, frame ngoài dải quản lý, frame ngoài vùng usable, double-free, địa chỉ frame không căn lề hoặc allocator chưa khởi tạo.
 
 ## Xử lý lỗi
 
 - Nếu memory map trống hoặc không hợp lệ, log lỗi và halt an toàn.
+- Nếu vùng usable không đủ chỗ chứa bitmap allocator, trả `MemoryError::BitmapTooLarge`.
 - Nếu hết frame, trả `MemoryError::OutOfFrames`.
+- Nếu frame nằm ngoài dải quản lý của allocator, trả `MemoryError::FrameOutOfRange`.
 - Nếu `deallocate_frame` nhận frame không thuộc vùng Limine `usable`, trả `MemoryError::FrameNotUsable`.
 - Nếu `deallocate_frame` nhận frame đã free, trả `MemoryError::FrameAlreadyFree`.
 - Nếu heap init thất bại, kernel không được tiếp tục vào subsystem cần allocation.

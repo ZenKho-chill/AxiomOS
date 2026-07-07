@@ -3,7 +3,7 @@ use spin::Mutex;
 
 pub const PAGE_SIZE: usize = 4096;
 const BITS_PER_BYTE: usize = 8;
-const LIMINE_USABLE_MEMORY: u32 = 0;
+const LIMINE_USABLE_MEMORY: u64 = 0;
 
 /// Lỗi xảy ra trong hệ thống quản lý bộ nhớ
 #[derive(Debug, Clone, Copy)]
