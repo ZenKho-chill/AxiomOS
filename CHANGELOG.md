@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Thêm Kernel File API và VFS runtime read-only tối giản cho root mount, hỗ trợ `open`, `read`, `list_dir` và adapter FAT32 qua caller-provided buffer.
 - Thêm trình đọc FAT32 read-only kernel-internal qua `BlockDevice`, hỗ trợ mount BPB, liệt kê root directory 8.3 và đọc file theo cluster chain bằng test image `RamDisk`.
 - Thêm Spec 016 `virtual-file-system` ở trạng thái APPROVED và ADR-006 cho thiết kế VFS tối giản với một root mount read-only.
 - Thêm lớp trừu tượng hóa thiết bị khối (Block Device Abstraction) hỗ trợ trait BlockDevice và mock RamDisk.
@@ -59,6 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sửa khởi tạo heap để không fallback HHDM về `0`; kernel giờ chỉ init heap khi HHDM offset đã được memory module xác thực.
 
 ### Changed
+- Chuyển Spec 016 `virtual-file-system` và Spec 017 `kernel-file-api` sang trạng thái TESTING sau khi có VFS runtime và Kernel File API read-only.
 - Chuyển trạng thái spec `007-fat32-readonly` sang `APPROVED` sau khi Spec 015 block device abstraction đã hoàn tất.
 - Chuyển trạng thái specs `000-project-charter`, `001-boot-and-kernel-entry` và `002-serial-logging` sang `COMPLETE` sau khi acceptance criteria đã được xác minh.
 - Chuyển trạng thái spec `003-framebuffer-console` sang `COMPLETE` sau khi xác minh serial, screenshot QEMU và panic-test.

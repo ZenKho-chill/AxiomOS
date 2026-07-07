@@ -5,8 +5,8 @@ AxiomOS xây dựng hệ thống tệp tin ảo và hỗ trợ định dạng FA
 ## Các tầng thiết kế
 
 1. **VFS (Virtual Filesystem)**:
-   - Bản Milestone 5 dùng thiết kế tối giản với một root mount `/`.
-   - Cung cấp giao diện kernel-internal cho `open`, `read` và `list_dir`.
+   - Bản Milestone 5 dùng thiết kế tối giản với một root mount `/` trong `kernel/src/fs/vfs.rs`.
+   - Cung cấp giao diện kernel-internal cho `open`, `read` và `list_dir` qua caller-provided buffer.
    - Không công bố syscall ABI hoặc userspace file descriptor trong Milestone 5.
 
 2. **FAT32 Driver (Read-Only)**:
@@ -25,3 +25,4 @@ AxiomOS xây dựng hệ thống tệp tin ảo và hỗ trợ định dạng FA
 - Root mount duy nhất là đủ cho giai đoạn đọc file marker và chuẩn bị ELF loader.
 - Ghi file, permissions, nhiều mount point và syscall file descriptor được hoãn sang milestone sau.
 - FAT32 driver hiện chỉ là backend read-only trên trait `BlockDevice`; việc nối vào driver block thật của QEMU sẽ cần spec hoặc PR riêng.
+- Spec 017 cung cấp Kernel File API trong `kernel/src/fs/kernel_file.rs`; API này không tự cấp phát `Vec` và để caller kiểm soát buffer.
