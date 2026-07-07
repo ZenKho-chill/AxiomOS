@@ -8,6 +8,7 @@ pub mod arch;
 pub mod boot;
 pub mod console;
 pub mod drivers;
+pub mod logging;
 pub mod memory;
 
 #[cfg(not(test))]
@@ -40,7 +41,7 @@ pub extern "C" fn _start() -> ! {
     // SAFETY: Các lệnh này thay đổi bảng ngắt của CPU ở mức đặc quyền Ring 0
     unsafe {
         arch::x86_64::idt::init();
-        boot_log("[AXIOMOS] IDT initialized");
+        logging::boot("IDT initialized");
 
         drivers::pic::init();
     }
@@ -106,10 +107,10 @@ pub extern "C" fn _start() -> ! {
     run_panic_test_if_requested();
 
     // In chuỗi boot sequence theo đúng yêu cầu đặc tả
-    boot_log("[AXIOMOS] Bootloader handoff complete");
-    boot_log("[AXIOMOS] Kernel started");
-    boot_log("[AXIOMOS] Serial logger initialized");
-    boot_log("[AXIOMOS] System halted");
+    logging::boot("Bootloader handoff complete");
+    logging::boot("Kernel started");
+    logging::boot("Serial logger initialized");
+    logging::boot("System halted");
 
     // Bật ngắt phần cứng trên PIC và CPU sau khi đã in xong boot sequence
     // SAFETY: Bật ngắt thông qua unmask và sti yêu cầu đặc quyền Ring 0.
@@ -127,7 +128,7 @@ pub extern "C" fn _start() -> ! {
         let current_ticks =
             arch::x86_64::idt::TIMER_TICKS.load(core::sync::atomic::Ordering::Relaxed);
         if current_ticks - last_ticks >= 100 {
-            serial_println!("[AXIOMOS TIMER] Ticks: {}", current_ticks);
+            logging::info("TIMER", format_args!("Ticks: {}", current_ticks), false);
             last_ticks = current_ticks;
         }
 
@@ -168,20 +169,13 @@ pub extern "C" fn _start() -> ! {
 #[cfg(not(test))]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    serial_println!("[AXIOMOS PANIC] {}", info);
-    console::framebuffer::framebuffer_println(format_args!("[AXIOMOS PANIC] {}", info));
+    logging::panic(format_args!("{}", info));
     loop {
         // SAFETY: Dừng CPU khi xảy ra panic.
         unsafe {
             core::arch::asm!("hlt");
         }
     }
-}
-
-#[cfg(not(test))]
-fn boot_log(message: &str) {
-    serial_println!("{}", message);
-    console::framebuffer::framebuffer_println(format_args!("{}", message));
 }
 
 #[cfg(all(not(test), feature = "panic-test"))]

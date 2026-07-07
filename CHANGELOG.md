@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Thêm nền tảng quản lý bộ nhớ theo Spec 004: đọc Limine memory map, lấy HHDM offset, bitmap physical frame allocator, paging helper, kernel heap 8 MiB và memory diagnostics qua serial/framebuffer.
 - Thêm unit test kernel cho `PhysFrame::from_start_address` và helper căn lề bitmap trong memory foundation.
 - Thêm cấu hình CodeRabbit để review tự động các PR target `main`, `milestone-*` và `feature/*` theo quy tắc AxiomOS.
+- Thêm Spec 011, ADR 004 và logging facade nội bộ cho Milestone 4 với `LogRecord`, level, subsystem và mirror framebuffer tùy chọn.
 
 ### Fixed
 - Sửa cấu hình Limine 7.x để entry AxiomOS dùng `PROTOCOL=limine` và `KERNEL_PATH=boot:///boot/kernel.elf`, tránh lỗi `[config file contains no valid entries]`.
