@@ -132,42 +132,40 @@ impl Write for BufferWriter {
     }
 }
 
-// Trong chế độ test (chạy trên host), ta không có crate::utils::sync do kernel crate bị loại trừ,
-// nên ta dùng lock cục bộ giả lập để chạy test an toàn.
+// Trong chế độ test host, dùng spin::Mutex để các unit test chạy song song không đụng RefCell borrow.
 #[cfg(test)]
 mod mock_lock {
-    use core::cell::RefCell;
     pub struct Spinlock<T> {
-        cell: RefCell<T>,
+        inner: spin::Mutex<T>,
     }
+
     impl<T> Spinlock<T> {
         pub const fn new(data: T) -> Self {
             Self {
-                cell: RefCell::new(data),
+                inner: spin::Mutex::new(data),
             }
         }
-        pub fn lock(&self) -> core::cell::RefMut<'_, T> {
-            self.cell.borrow_mut()
+
+        pub fn lock(&self) -> spin::MutexGuard<'_, T> {
+            self.inner.lock()
         }
     }
-    // SAFETY: Giả lập Sync trong môi trường unit test đơn luồng để pass borrow checker
-    unsafe impl<T> Sync for Spinlock<T> {}
 
     pub struct SpinlockIrqSave<T> {
-        cell: RefCell<T>,
+        inner: spin::Mutex<T>,
     }
+
     impl<T> SpinlockIrqSave<T> {
         pub const fn new(data: T) -> Self {
             Self {
-                cell: RefCell::new(data),
+                inner: spin::Mutex::new(data),
             }
         }
-        pub fn lock(&self) -> core::cell::RefMut<'_, T> {
-            self.cell.borrow_mut()
+
+        pub fn lock(&self) -> spin::MutexGuard<'_, T> {
+            self.inner.lock()
         }
     }
-    // SAFETY: Giả lập Sync trong môi trường unit test đơn luồng để pass borrow checker
-    unsafe impl<T> Sync for SpinlockIrqSave<T> {}
 }
 
 #[cfg(test)]

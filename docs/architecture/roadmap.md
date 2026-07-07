@@ -43,9 +43,9 @@ Tài liệu này xác định các cột mốc phát triển (Milestones) của 
 - [x] Đồng hồ thời gian hệ thống (Timekeeping).
 
 ### Milestone 5: Hệ thống Tệp tin & Lưu trữ
-- [ ] Lớp trừu tượng hóa thiết bị khối (Block Device Abstraction).
-- [ ] Trình đọc hệ thống tệp tin FAT32 Read-only.
-- [ ] Thiết kế Hệ thống tệp tin ảo (VFS).
+- [x] Lớp trừu tượng hóa thiết bị khối (Block Device Abstraction).
+- [x] Trình đọc hệ thống tệp tin FAT32 Read-only qua `BlockDevice` kernel-internal; driver đĩa QEMU trực tiếp chưa thuộc phạm vi mục này.
+- [x] Thiết kế Hệ thống tệp tin ảo (VFS).
 - [ ] API đọc tệp tin từ Kernel.
 
 ### Milestone 6: Nạp Chương Trình & Userspace
