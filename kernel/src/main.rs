@@ -107,6 +107,9 @@ pub extern "C" fn _start() -> ! {
 
                             // Chạy chẩn đoán lập lịch tiến trình
                             run_scheduler_diagnostics();
+
+                            // Chạy chẩn đoán thiết bị khối
+                            run_block_device_diagnostics();
                         }
                     }
                 }
@@ -448,4 +451,46 @@ fn task_b() {
         let val = core::ptr::read_volatile(&raw const TASK_B_RUNS);
         core::ptr::write_volatile(&raw mut TASK_B_RUNS, val + 1);
     }
+}
+
+#[cfg(not(test))]
+static mut MOCK_DISK_DATA: [u8; 1024] = [0u8; 1024];
+
+#[cfg(not(test))]
+fn run_block_device_diagnostics() {
+    use drivers::block::{register_system_block_device, BlockDevice, RamDisk, SYSTEM_BLOCK_DEVICE};
+
+    serial_println!("[AXIOMOS BLOCK] Chạy chẩn đoán thiết bị khối...");
+
+    // Thiết lập dữ liệu mock tĩnh
+    let test_string = b"AXIOMOS BLOCK DEVICE TEST SUCCESS";
+    unsafe {
+        let ptr = &raw mut MOCK_DISK_DATA;
+        let buf = &mut *ptr;
+        buf[512..512 + test_string.len()].copy_from_slice(test_string);
+    }
+
+    // Đăng ký thiết bị hệ thống
+    let disk = RamDisk::new(unsafe { &*(&raw const MOCK_DISK_DATA as *const [u8]) });
+    register_system_block_device(disk);
+
+    // Đọc kiểm chứng
+    let mut buf = [0u8; 512];
+    let guard = SYSTEM_BLOCK_DEVICE.lock();
+    if let Some(ref device) = *guard {
+        assert_eq!(device.total_sectors(), 2);
+
+        let res = device.read_sector(1, &mut buf);
+        assert!(res.is_ok(), "Lỗi đọc sector!");
+
+        assert_eq!(
+            &buf[0..test_string.len()],
+            test_string,
+            "Dữ liệu sector đọc ra bị sai lệch!"
+        );
+    } else {
+        panic!("Lỗi: Chưa đăng ký thiết bị khối hệ thống!");
+    }
+
+    serial_println!("[AXIOMOS BLOCK] Chạy chẩn đoán thiết bị khối: THÀNH CÔNG");
 }

@@ -2,7 +2,7 @@
 
 - **Feature ID**: 015-block-device-abstraction
 - **Tiêu đề**: Lớp trừu tượng hóa thiết bị khối (Block Device Abstraction)
-- **Trạng thái**: DRAFT
+- **Trạng thái**: COMPLETE
 - **Người phụ trách**: Kỹ sư trưởng AxiomOS
 - **Ngày tạo**: 2026-07-07
 - **Ngày cập nhật**: 2026-07-07

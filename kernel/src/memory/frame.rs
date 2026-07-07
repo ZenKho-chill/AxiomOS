@@ -28,7 +28,7 @@ pub struct PhysFrame {
 impl PhysFrame {
     /// Tạo frame từ địa chỉ vật lý đã căn lề 4 KiB.
     pub const fn from_start_address(start_address: u64) -> Result<Self, MemoryError> {
-        if start_address % PAGE_SIZE as u64 != 0 {
+        if !start_address.is_multiple_of(PAGE_SIZE as u64) {
             return Err(MemoryError::UnalignedFrame);
         }
 
