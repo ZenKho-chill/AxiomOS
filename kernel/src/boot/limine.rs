@@ -234,7 +234,7 @@ pub fn framebuffer_info() -> Option<FramebufferInfo> {
         width: framebuffer.width as usize,
         height: framebuffer.height as usize,
         pitch: framebuffer.pitch as usize,
-        bytes_per_pixel: (usize::from(framebuffer.bpp) + 7) / 8,
+        bytes_per_pixel: usize::from(framebuffer.bpp).div_ceil(8),
         memory_model: framebuffer.memory_model,
         red_mask_size: framebuffer.red_mask_size,
         red_mask_shift: framebuffer.red_mask_shift,
