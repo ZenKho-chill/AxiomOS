@@ -21,11 +21,11 @@ Sau Milestone 3, kernel đã có nhiều điểm ghi log trực tiếp qua `seri
 - Không cấp phát động khi ghi log.
 - Không thêm dependency mới.
 - Cung cấp unit test cho formatter prefix.
+- [Giai đoạn 2] Thêm bộ lọc log động (runtime log filtering) theo level/subsystem.
+- [Giai đoạn 2] Thêm bộ đệm xoay vòng (ring buffer log) trong bộ nhớ tĩnh của kernel.
 
 ## Không thuộc phạm vi
 
-- Không thêm ring buffer log.
-- Không thêm runtime log filtering.
 - Không ghi log ra disk hoặc filesystem.
 - Không thay thế toàn bộ log trong interrupt handler.
 - Không thêm subsystem tracing hoặc telemetry.

@@ -92,6 +92,9 @@ pub extern "C" fn _start() -> ! {
 
                             // Chạy chẩn đoán cơ chế đồng bộ hóa
                             run_sync_diagnostics();
+
+                            // Chạy chẩn đoán bộ lọc log và ring buffer
+                            run_logging_diagnostics();
                         }
                     }
                 }
@@ -264,4 +267,41 @@ fn run_sync_diagnostics() {
 
     serial_println!("[AXIOMOS SYNC] Kiểm thử SpinlockIrqSave (An toàn ngắt): THÀNH CÔNG");
     serial_println!("[AXIOMOS SYNC] Tất cả chẩn đoán đồng bộ hóa đã vượt qua!");
+}
+
+#[cfg(not(test))]
+fn run_logging_diagnostics() {
+    use logging::{dump_log_buffer, filter_level, set_filter_level, LogLevel};
+
+    serial_println!("[AXIOMOS LOG] Chạy chẩn đoán bộ lọc log và ring buffer...");
+
+    // Lưu mức lọc hiện tại
+    let original_level = filter_level();
+
+    // 1. Thử ghi log mức Info và Warn
+    logging::info("TEST", format_args!("Thông điệp mức Info"), false);
+    logging::write(logging::LogRecord {
+        level: LogLevel::Warn,
+        subsystem: Some("TEST"),
+        message: format_args!("Thông điệp mức Warn"),
+        mirror_framebuffer: false,
+    });
+
+    // 2. Thiết lập mức lọc Warn
+    set_filter_level(LogLevel::Warn);
+
+    // Log Info tiếp theo phải bị lọc (không lưu vào ring buffer)
+    logging::info(
+        "TEST",
+        format_args!("Thông điệp mức Info này phải bị lọc!"),
+        false,
+    );
+
+    // Khôi phục lại mức lọc ban đầu
+    set_filter_level(original_level);
+
+    // 3. Dump ring buffer log ra serial để kiểm tra thủ công các log đã lưu
+    dump_log_buffer();
+
+    serial_println!("[AXIOMOS LOG] Chạy chẩn đoán bộ lọc log và ring buffer: THÀNH CÔNG");
 }
