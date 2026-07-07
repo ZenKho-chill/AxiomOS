@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Thêm Spec 016 `virtual-file-system` ở trạng thái APPROVED và ADR-006 cho thiết kế VFS tối giản với một root mount read-only.
 - Thêm lớp trừu tượng hóa thiết bị khối (Block Device Abstraction) hỗ trợ trait BlockDevice và mock RamDisk.
 - Cập nhật Spec 015-block-device-abstraction sang trạng thái COMPLETE.
 - Thêm tài liệu đặc tả thiết kế trình lập lịch trưng dụng (Preemptive Scheduler spec) dưới dạng Spec 014-preemptive-scheduler-design ở trạng thái COMPLETE.
