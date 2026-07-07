@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Thêm tài liệu đặc tả thiết kế trình lập lịch trưng dụng (Preemptive Scheduler spec) dưới dạng Spec 014-preemptive-scheduler-design ở trạng thái COMPLETE.
 - Thêm trình lập lịch tiến trình cộng tác (Cooperative Scheduler) hỗ trợ chuyển đổi ngữ cảnh bằng Assembly x86_64, TCB và API yield_now().
 - Cập nhật Spec 009-process-scheduler sang trạng thái COMPLETE.
 - Thêm hệ thống quản lý thời gian (Timekeeping) hỗ trợ cấu hình PIT 1000Hz, API uptime_ms() và sleep_ms().
