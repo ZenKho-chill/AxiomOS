@@ -40,7 +40,7 @@ Tài liệu này xác định các cột mốc phát triển (Milestones) của 
 - [x] Các thành phần đồng bộ hóa luồng cơ bản (Spinlock, Mutex).
 - [ ] Trình lập lịch tiến trình cộng tác (Cooperative Task Scheduler) cơ bản.
 - [ ] Đặc tả thiết kế trình lập lịch trưng dụng (Preemptive Scheduler).
-- [ ] Đồng hồ thời gian hệ thống (Timekeeping).
+- [x] Đồng hồ thời gian hệ thống (Timekeeping).
 
 ### Milestone 5: Hệ thống Tệp tin & Lưu trữ
 - [ ] Lớp trừu tượng hóa thiết bị khối (Block Device Abstraction).
