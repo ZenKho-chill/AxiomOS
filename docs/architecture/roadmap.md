@@ -45,7 +45,7 @@ Tài liệu này xác định các cột mốc phát triển (Milestones) của 
 ### Milestone 5: Hệ thống Tệp tin & Lưu trữ
 - [x] Lớp trừu tượng hóa thiết bị khối (Block Device Abstraction).
 - [ ] Trình đọc hệ thống tệp tin FAT32 Read-only.
-- [ ] Thiết kế Hệ thống tệp tin ảo (VFS).
+- [x] Thiết kế Hệ thống tệp tin ảo (VFS).
 - [ ] API đọc tệp tin từ Kernel.
 
 ### Milestone 6: Nạp Chương Trình & Userspace
