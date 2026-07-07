@@ -271,7 +271,7 @@ fn run_sync_diagnostics() {
 
 #[cfg(not(test))]
 fn run_logging_diagnostics() {
-    use logging::{LogLevel, filter_level, set_filter_level, dump_log_buffer};
+    use logging::{dump_log_buffer, filter_level, set_filter_level, LogLevel};
 
     serial_println!("[AXIOMOS LOG] Chạy chẩn đoán bộ lọc log và ring buffer...");
 
@@ -289,9 +289,13 @@ fn run_logging_diagnostics() {
 
     // 2. Thiết lập mức lọc Warn
     set_filter_level(LogLevel::Warn);
-    
+
     // Log Info tiếp theo phải bị lọc (không lưu vào ring buffer)
-    logging::info("TEST", format_args!("Thông điệp mức Info này phải bị lọc!"), false);
+    logging::info(
+        "TEST",
+        format_args!("Thông điệp mức Info này phải bị lọc!"),
+        false,
+    );
 
     // Khôi phục lại mức lọc ban đầu
     set_filter_level(original_level);
