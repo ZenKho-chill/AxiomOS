@@ -40,14 +40,6 @@ pub extern "C" fn _start() -> ! {
         drivers::pic::init();
     }
 
-    // Bật ngắt phần cứng trên PIC và CPU
-    // SAFETY: Bật ngắt thông qua unmask và sti yêu cầu đặc quyền Ring 0.
-    unsafe {
-        drivers::pic::unmask(0); // Timer (IRQ 0)
-        drivers::pic::unmask(1); // Keyboard (IRQ 1)
-        core::arch::asm!("sti");
-    }
-
     // Kiểm chứng ngắt Breakpoint (int3)
     // SAFETY: int3 kích hoạt breakpoint exception hợp lệ đã đăng ký handler trong IDT
     unsafe {
@@ -61,6 +53,14 @@ pub extern "C" fn _start() -> ! {
     boot_log("[AXIOMOS] Kernel started");
     boot_log("[AXIOMOS] Serial logger initialized");
     boot_log("[AXIOMOS] System halted");
+
+    // Bật ngắt phần cứng trên PIC và CPU sau khi đã in xong boot sequence
+    // SAFETY: Bật ngắt thông qua unmask và sti yêu cầu đặc quyền Ring 0.
+    unsafe {
+        drivers::pic::unmask(0); // Timer (IRQ 0)
+        drivers::pic::unmask(1); // Keyboard (IRQ 1)
+        core::arch::asm!("sti");
+    }
 
     // Vòng lặp chính xử lý nhập từ bàn phím
     let mut shift_pressed = false;
