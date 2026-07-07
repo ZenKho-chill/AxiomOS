@@ -2,10 +2,10 @@
 
 - **Feature ID**: 007-fat32-readonly
 - **Tiêu đề**: Hệ thống tệp tin FAT32 read-only
-- **Trạng thái**: DRAFT
+- **Trạng thái**: APPROVED
 - **Người phụ trách**: Kỹ sư trưởng AxiomOS
 - **Ngày tạo**: 2026-07-06
-- **Ngày cập nhật**: 2026-07-06
+- **Ngày cập nhật**: 2026-07-07
 
 ---
 
@@ -40,11 +40,12 @@ AxiomOS cần đọc file từ disk image để nạp chương trình userspace 
 
 - Spec 004: memory management cho buffer/cấp phát có kiểm soát.
 - Spec 005: interrupts nếu block device dùng interrupt sau này; polling được phép ở bản đầu nếu ghi rõ.
-- Block device abstraction tối thiểu phải có spec hoặc được giới hạn trong implementation của spec này.
+- Spec 015: block device abstraction đã cung cấp `BlockDevice`, `RamDisk` và unit test đọc sector.
 
 ## ADR liên quan
 
-- Cần ADR nếu thêm VFS abstraction hoặc crate parser FAT32 bên ngoài.
+- Không cần ADR mới cho bản đọc FAT32 đầu tiên vì chưa thêm VFS abstraction, chưa thêm crate parser FAT32 bên ngoài và chỉ dùng Spec 015 làm lớp block device.
+- Cần ADR riêng nếu thêm VFS abstraction, block cache hoặc dependency parser FAT32 bên ngoài.
 
 ## Public interfaces
 

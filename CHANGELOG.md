@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Thêm lớp trừu tượng hóa thiết bị khối (Block Device Abstraction) hỗ trợ trait BlockDevice và mock RamDisk.
+- Cập nhật Spec 015-block-device-abstraction sang trạng thái COMPLETE.
 - Thêm tài liệu đặc tả thiết kế trình lập lịch trưng dụng (Preemptive Scheduler spec) dưới dạng Spec 014-preemptive-scheduler-design ở trạng thái COMPLETE.
 - Thêm trình lập lịch tiến trình cộng tác (Cooperative Scheduler) hỗ trợ chuyển đổi ngữ cảnh bằng Assembly x86_64, TCB và API yield_now().
 - Cập nhật Spec 009-process-scheduler sang trạng thái COMPLETE.
@@ -55,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sửa khởi tạo heap để không fallback HHDM về `0`; kernel giờ chỉ init heap khi HHDM offset đã được memory module xác thực.
 
 ### Changed
+- Chuyển trạng thái spec `007-fat32-readonly` sang `APPROVED` sau khi Spec 015 block device abstraction đã hoàn tất.
 - Chuyển trạng thái specs `000-project-charter`, `001-boot-and-kernel-entry` và `002-serial-logging` sang `COMPLETE` sau khi acceptance criteria đã được xác minh.
 - Chuyển trạng thái spec `003-framebuffer-console` sang `COMPLETE` sau khi xác minh serial, screenshot QEMU và panic-test.
 - Chuyển trạng thái đặc tả `005-interrupts-and-exceptions` sang `COMPLETE` sau khi đã hiện thực hóa IDT/PIC và kiểm chứng thành công breakpoint exception (int3) trên local.
