@@ -5,7 +5,7 @@
 - **Trạng thái**: DRAFT
 - **Người phụ trách**: Kỹ sư trưởng AxiomOS
 - **Ngày tạo**: 2026-07-06
-- **Ngày cập nhật**: 2026-07-06
+- **Ngày cập nhật**: 2026-07-07
 
 ---
 
