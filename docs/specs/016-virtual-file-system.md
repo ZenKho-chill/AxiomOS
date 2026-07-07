@@ -2,7 +2,7 @@
 
 - **Feature ID**: 016-virtual-file-system
 - **Tiêu đề**: Hệ thống tệp tin ảo (VFS) tối giản
-- **Trạng thái**: APPROVED
+- **Trạng thái**: TESTING
 - **Người phụ trách**: Kỹ sư trưởng AxiomOS
 - **Ngày tạo**: 2026-07-07
 - **Ngày cập nhật**: 2026-07-07
@@ -127,6 +127,13 @@ pub trait DirEntrySink {
 - Unit test `read` tăng offset theo số byte đã đọc.
 - Integration test sau khi Spec 007 implementation có FAT32 fixture: mount root FAT32 và đọc file marker.
 - QEMU boot test sau khi có implementation phải giữ `[AXIOMOS] Kernel started`.
+
+## Ghi chú triển khai hiện tại
+
+- Module hiện thực: `kernel/src/fs/vfs.rs`.
+- Root mount registry hiện chỉ hỗ trợ một filesystem read-only.
+- Unit test dùng `VfsRoot` cục bộ để tránh phụ thuộc global state khi test chạy song song.
+- Integration test FAT32 fixture nằm trong `kernel/src/fs/fat32.rs`.
 
 ## Acceptance criteria
 

@@ -2,7 +2,7 @@
 
 - **Feature ID**: 017-kernel-file-api
 - **Tiêu đề**: API đọc tệp tin từ Kernel
-- **Trạng thái**: APPROVED
+- **Trạng thái**: TESTING
 - **Người phụ trách**: Kỹ sư trưởng AxiomOS
 - **Ngày tạo**: 2026-07-07
 - **Ngày cập nhật**: 2026-07-07
@@ -120,6 +120,13 @@ pub trait FileSystem {
 - Integration test VFS + FAT32 fixture đọc marker `AXIOMOS.TXT`.
 - Unit test `list_dir("/")` chuyển nhiều entry qua `DirEntrySink`.
 - QEMU boot regression phải giữ `[AXIOMOS] Kernel started`.
+
+## Ghi chú triển khai hiện tại
+
+- Module API public kernel-internal: `kernel/src/fs/kernel_file.rs`.
+- Module VFS runtime tối giản: `kernel/src/fs/vfs.rs`.
+- FAT32 backend được nối qua adapter `Fat32FileSystem` nhưng chưa có driver đĩa QEMU trực tiếp.
+- API dùng caller-provided buffer; không có `Vec` allocation ẩn trong runtime path.
 
 ## Acceptance criteria
 

@@ -1,5 +1,6 @@
 //! Trình đọc FAT32 read-only tối giản.
 
+use super::vfs;
 use crate::drivers::block::{BlockDevice, BlockError, SECTOR_SIZE};
 
 const FAT32_END_OF_CHAIN: u32 = 0x0FFF_FFF8;
@@ -46,6 +47,13 @@ pub struct DirectoryEntry {
     pub file_type: FileType,
     pub first_cluster: u32,
     pub size: u32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct Fat32Node {
+    file_type: FileType,
+    first_cluster: u32,
+    size: u32,
 }
 
 /// Sink nhận entry khi liệt kê thư mục mà không cần cấp phát động.
@@ -145,27 +153,63 @@ impl<'a, D: BlockDevice + ?Sized> Fat32Volume<'a, D> {
 
     /// Đọc file 8.3 ở thư mục root vào buffer caller cung cấp.
     pub fn read_file(&self, path: &str, buffer: &mut [u8]) -> Result<usize, FsError> {
-        let entry = self.find_root_entry(path)?;
-        if entry.file_type != FileType::RegularFile {
-            return Err(FsError::NotAFile);
-        }
-
-        let file_size = entry.size as usize;
+        let node = self.open(path)?;
+        let file_size = node.size as usize;
         if buffer.len() < file_size {
             return Err(FsError::BufferTooSmall);
         }
-        if file_size == 0 {
+
+        self.read_node_at(&node, 0, &mut buffer[..file_size])
+    }
+
+    fn open(&self, path: &str) -> Result<Fat32Node, FsError> {
+        let entry = self.find_root_entry(path)?;
+        Ok(Fat32Node {
+            file_type: entry.file_type,
+            first_cluster: entry.first_cluster,
+            size: entry.size,
+        })
+    }
+
+    fn read_node_at(
+        &self,
+        node: &Fat32Node,
+        offset: u64,
+        buffer: &mut [u8],
+    ) -> Result<usize, FsError> {
+        if node.file_type != FileType::RegularFile {
+            return Err(FsError::NotAFile);
+        }
+        if buffer.is_empty() || offset >= u64::from(node.size) {
+            return Ok(0);
+        }
+        if node.size == 0 {
             return Ok(0);
         }
 
-        self.validate_cluster(entry.first_cluster)?;
+        self.validate_cluster(node.first_cluster)?;
 
-        let mut current_cluster = entry.first_cluster;
+        let file_remaining = u64::from(node.size) - offset;
+        let target_len = file_remaining.min(buffer.len() as u64) as usize;
+        let cluster_size = usize::from(self.sectors_per_cluster) * SECTOR_SIZE;
+        let mut skip_in_cluster = offset as usize;
+        let mut current_cluster = node.first_cluster;
         let mut clusters_seen = 0u32;
         let mut bytes_read = 0usize;
-        let mut remaining = file_size;
 
-        while remaining > 0 {
+        while skip_in_cluster >= cluster_size {
+            self.validate_cluster(current_cluster)?;
+            clusters_seen = clusters_seen.checked_add(1).ok_or(FsError::CorruptFat)?;
+            if clusters_seen > self.total_clusters {
+                return Err(FsError::CorruptFat);
+            }
+
+            let next = self.read_next_data_cluster(current_cluster)?;
+            current_cluster = next;
+            skip_in_cluster -= cluster_size;
+        }
+
+        while bytes_read < target_len {
             self.validate_cluster(current_cluster)?;
             clusters_seen = clusters_seen.checked_add(1).ok_or(FsError::CorruptFat)?;
             if clusters_seen > self.total_clusters {
@@ -174,7 +218,17 @@ impl<'a, D: BlockDevice + ?Sized> Fat32Volume<'a, D> {
 
             let cluster_lba = self.cluster_to_lba(current_cluster)?;
             for sector_index in 0..self.sectors_per_cluster {
-                if remaining == 0 {
+                if bytes_read == target_len {
+                    break;
+                }
+                if skip_in_cluster >= SECTOR_SIZE {
+                    skip_in_cluster -= SECTOR_SIZE;
+                    continue;
+                }
+
+                let sector_offset = skip_in_cluster;
+                skip_in_cluster = 0;
+                if sector_offset >= SECTOR_SIZE {
                     break;
                 }
 
@@ -182,25 +236,18 @@ impl<'a, D: BlockDevice + ?Sized> Fat32Volume<'a, D> {
                 self.device
                     .read_sector(cluster_lba + u64::from(sector_index), &mut sector)?;
 
-                let copy_len = remaining.min(SECTOR_SIZE);
-                buffer[bytes_read..bytes_read + copy_len].copy_from_slice(&sector[..copy_len]);
+                let copy_len = (target_len - bytes_read).min(SECTOR_SIZE - sector_offset);
+                buffer[bytes_read..bytes_read + copy_len]
+                    .copy_from_slice(&sector[sector_offset..sector_offset + copy_len]);
                 bytes_read += copy_len;
-                remaining -= copy_len;
             }
 
-            if remaining > 0 {
-                let next = self.read_fat_entry(current_cluster)?;
-                if is_end_of_chain(next) {
-                    return Err(FsError::CorruptFat);
-                }
-                if next == FAT32_BAD_CLUSTER {
-                    return Err(FsError::CorruptFat);
-                }
-                current_cluster = next;
+            if bytes_read < target_len {
+                current_cluster = self.read_next_data_cluster(current_cluster)?;
             }
         }
 
-        Ok(file_size)
+        Ok(bytes_read)
     }
 
     /// Liệt kê thư mục root FAT32 theo thứ tự entry trên disk.
@@ -314,6 +361,15 @@ impl<'a, D: BlockDevice + ?Sized> Fat32Volume<'a, D> {
         Ok(le_u32(&sector[offset..offset + 4]) & 0x0FFF_FFFF)
     }
 
+    fn read_next_data_cluster(&self, cluster: u32) -> Result<u32, FsError> {
+        let next = self.read_fat_entry(cluster)?;
+        if is_end_of_chain(next) || next == FAT32_BAD_CLUSTER {
+            return Err(FsError::CorruptFat);
+        }
+
+        Ok(next)
+    }
+
     fn cluster_to_lba(&self, cluster: u32) -> Result<u64, FsError> {
         self.validate_cluster(cluster)?;
         let cluster_index = u64::from(cluster - 2);
@@ -329,6 +385,141 @@ impl<'a, D: BlockDevice + ?Sized> Fat32Volume<'a, D> {
 
         Ok(())
     }
+}
+
+/// Adapter để dùng `Fat32Volume` như một backend VFS read-only.
+pub struct Fat32FileSystem<'a, D: BlockDevice + ?Sized> {
+    volume: Fat32Volume<'a, D>,
+}
+
+impl<'a, D: BlockDevice + ?Sized> Fat32FileSystem<'a, D> {
+    pub const fn new(volume: Fat32Volume<'a, D>) -> Self {
+        Self { volume }
+    }
+}
+
+impl<D> vfs::FileSystem for Fat32FileSystem<'_, D>
+where
+    D: BlockDevice + Sync + ?Sized,
+{
+    fn open(&self, path: &str) -> Result<vfs::FileNode, vfs::VfsError> {
+        let node = self.volume.open(path).map_err(map_fat32_error)?;
+        Ok(vfs::FileNode::new(
+            map_file_type(node.file_type),
+            u64::from(node.size),
+            0,
+            u64::from(node.first_cluster),
+        ))
+    }
+
+    fn read_at(
+        &self,
+        node: &vfs::FileNode,
+        offset: u64,
+        buffer: &mut [u8],
+    ) -> Result<usize, vfs::VfsError> {
+        if node.backend_id() != 0 {
+            return Err(vfs::VfsError::BackendError);
+        }
+
+        let first_cluster =
+            u32::try_from(node.backend_node()).map_err(|_| vfs::VfsError::BackendError)?;
+        let size = u32::try_from(node.size()).map_err(|_| vfs::VfsError::BackendError)?;
+        let fat_node = Fat32Node {
+            file_type: map_vfs_file_type(node.file_type()),
+            first_cluster,
+            size,
+        };
+
+        self.volume
+            .read_node_at(&fat_node, offset, buffer)
+            .map_err(map_fat32_error)
+    }
+
+    fn list_dir(&self, path: &str, sink: &mut dyn vfs::DirEntrySink) -> Result<(), vfs::VfsError> {
+        let mut adapter = VfsDirSink { sink };
+        self.volume
+            .list_dir(path, &mut adapter)
+            .map_err(map_fat32_error)
+    }
+}
+
+struct VfsDirSink<'a> {
+    sink: &'a mut dyn vfs::DirEntrySink,
+}
+
+impl DirEntrySink for VfsDirSink<'_> {
+    fn push(&mut self, entry: DirectoryEntry) -> Result<(), FsError> {
+        let (name, name_len) =
+            format_display_name(&entry.name).map_err(|_| FsError::InvalidPath)?;
+        let vfs_entry = vfs::DirEntry::from_raw_name(
+            &name[..name_len as usize],
+            map_file_type(entry.file_type),
+            u64::from(entry.size),
+        )
+        .map_err(|_| FsError::SinkFull)?;
+        self.sink.push(vfs_entry).map_err(|_| FsError::SinkFull)
+    }
+}
+
+fn map_fat32_error(error: FsError) -> vfs::VfsError {
+    match error {
+        FsError::InvalidPath => vfs::VfsError::InvalidPath,
+        FsError::NotFound => vfs::VfsError::NotFound,
+        FsError::NotAFile => vfs::VfsError::IsDirectory,
+        FsError::NotADirectory => vfs::VfsError::NotDirectory,
+        FsError::BufferTooSmall => vfs::VfsError::BufferTooSmall,
+        FsError::SinkFull => vfs::VfsError::SinkFull,
+        FsError::Block(_)
+        | FsError::InvalidBootSector
+        | FsError::UnsupportedSectorSize
+        | FsError::UnsupportedFatLayout
+        | FsError::InvalidCluster
+        | FsError::CorruptFat => vfs::VfsError::BackendError,
+    }
+}
+
+fn map_file_type(file_type: FileType) -> vfs::FileType {
+    match file_type {
+        FileType::RegularFile => vfs::FileType::RegularFile,
+        FileType::Directory => vfs::FileType::Directory,
+    }
+}
+
+fn map_vfs_file_type(file_type: vfs::FileType) -> FileType {
+    match file_type {
+        vfs::FileType::RegularFile => FileType::RegularFile,
+        vfs::FileType::Directory => FileType::Directory,
+    }
+}
+
+fn format_display_name(raw_name: &[u8; 11]) -> Result<([u8; vfs::MAX_NAME_LEN], u8), FsError> {
+    let mut output = [0u8; vfs::MAX_NAME_LEN];
+    let base_len = trim_spaces_len(&raw_name[..8]);
+    let extension_len = trim_spaces_len(&raw_name[8..11]);
+    if base_len == 0 {
+        return Err(FsError::InvalidPath);
+    }
+
+    output[..base_len].copy_from_slice(&raw_name[..base_len]);
+    let mut output_len = base_len;
+    if extension_len > 0 {
+        output[output_len] = b'.';
+        output_len += 1;
+        output[output_len..output_len + extension_len]
+            .copy_from_slice(&raw_name[8..8 + extension_len]);
+        output_len += extension_len;
+    }
+
+    Ok((output, output_len as u8))
+}
+
+fn trim_spaces_len(bytes: &[u8]) -> usize {
+    let mut len = bytes.len();
+    while len > 0 && bytes[len - 1] == b' ' {
+        len -= 1;
+    }
+    len
 }
 
 fn is_end_of_chain(entry: u32) -> bool {
@@ -400,6 +591,7 @@ fn normalize_short_name_byte(byte: u8) -> Result<u8, FsError> {
 mod tests {
     use super::*;
     use crate::drivers::block::RamDisk;
+    use crate::fs::vfs::VfsRoot;
     use alloc::boxed::Box;
     use alloc::vec;
 
@@ -502,6 +694,32 @@ mod tests {
             volume.read_file("AXIOMOS.TXT", &mut buffer),
             Err(FsError::BufferTooSmall)
         );
+    }
+
+    #[test]
+    fn reads_marker_file_through_vfs_adapter() {
+        let disk = Box::leak(Box::new(RamDisk::new(build_test_image())));
+        let volume = match mount_fat32(disk) {
+            Ok(volume) => volume,
+            Err(error) => panic!("mount failed: {:?}", error),
+        };
+        let filesystem = Box::leak(Box::new(Fat32FileSystem::new(volume)));
+        let mut root = VfsRoot::new();
+        assert_eq!(root.mount_root(filesystem), Ok(()));
+
+        let mut handle = match root.open("/AXIOMOS.TXT") {
+            Ok(handle) => handle,
+            Err(error) => panic!("open failed: {:?}", error),
+        };
+
+        let mut first = [0u8; 7];
+        assert_eq!(root.read(&mut handle, &mut first), Ok(7));
+        assert_eq!(&first, b"AXIOMOS");
+
+        let mut second = [0u8; 64];
+        let remaining = MARKER_CONTENT.len() - first.len();
+        assert_eq!(root.read(&mut handle, &mut second), Ok(remaining));
+        assert_eq!(&second[..remaining], &MARKER_CONTENT[first.len()..]);
     }
 
     fn build_test_image() -> &'static [u8] {

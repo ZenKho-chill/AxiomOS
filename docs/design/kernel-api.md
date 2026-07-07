@@ -30,3 +30,19 @@ impl<D: BlockDevice + ?Sized> Fat32Volume<'_, D> {
 API này chưa phải userspace ABI hoặc syscall ABI. Phạm vi hiện tại chỉ hỗ trợ
 đường dẫn root 8.3 read-only trên một `BlockDevice`; long filename, thư mục
 lồng nhau, quyền truy cập file descriptor và ghi file được hoãn sang spec sau.
+
+## Kernel File API
+
+Spec 017 cung cấp API đọc file kernel-internal qua module
+`kernel/src/fs/kernel_file.rs`:
+
+```rust
+pub fn kernel_open_file(path: &str) -> Result<FileHandle, VfsError>;
+pub fn kernel_read(handle: &mut FileHandle, buffer: &mut [u8]) -> Result<usize, VfsError>;
+pub fn kernel_read_file(path: &str, buffer: &mut [u8]) -> Result<usize, VfsError>;
+pub fn kernel_list_dir(path: &str, sink: &mut dyn DirEntrySink) -> Result<(), VfsError>;
+```
+
+Các API này dùng VFS tối giản trong `kernel/src/fs/vfs.rs`, nhận buffer từ
+caller và chưa phải ABI userspace. Syscall ABI, file descriptor theo process,
+permissions và write path vẫn được hoãn sang Milestone 6 hoặc spec sau.

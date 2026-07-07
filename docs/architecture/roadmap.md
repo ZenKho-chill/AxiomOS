@@ -46,7 +46,7 @@ Tài liệu này xác định các cột mốc phát triển (Milestones) của 
 - [x] Lớp trừu tượng hóa thiết bị khối (Block Device Abstraction).
 - [x] Trình đọc hệ thống tệp tin FAT32 Read-only qua `BlockDevice` kernel-internal; driver đĩa QEMU trực tiếp chưa thuộc phạm vi mục này.
 - [x] Thiết kế Hệ thống tệp tin ảo (VFS).
-- [ ] API đọc tệp tin từ Kernel.
+- [x] API đọc tệp tin từ Kernel qua VFS read-only với caller-provided buffer.
 
 ### Milestone 6: Nạp Chương Trình & Userspace
 - [ ] Trình phân tích định dạng ELF64.
