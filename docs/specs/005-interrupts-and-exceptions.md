@@ -35,6 +35,8 @@ Kernel cần xử lý CPU exceptions thay vì triple fault hoặc reboot im lặ
 - Assembly chỉ dùng cho interrupt stubs và CPU instruction đặc biệt.
 - Mọi ABI assembly phải được tài liệu hóa.
 - Exception không recoverable phải halt an toàn sau khi log.
+- GDT descriptors phải bật sẵn Accessed bit nếu GDT nằm trong segment read-only để CPU không ghi vào descriptor trước khi IDT sẵn sàng.
+- IDT handler phải dùng kernel code selector cố định sau khi GDT được nạp, không phụ thuộc selector còn lại từ bootloader.
 
 ## Dependencies
 

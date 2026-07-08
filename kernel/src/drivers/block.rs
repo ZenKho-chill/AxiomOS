@@ -22,6 +22,7 @@ pub trait BlockDevice {
 }
 
 /// Trình giả lập RAM Disk lưu dữ liệu thô trong một vùng nhớ byte tĩnh
+#[derive(Debug, Clone, Copy)]
 pub struct RamDisk {
     data: &'static [u8],
 }

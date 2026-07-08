@@ -68,9 +68,7 @@ pub struct InterruptStackFrame {
 /// # Safety
 /// Hàm này thay đổi bảng IDT của CPU, yêu cầu CPU ở đặc quyền Ring 0.
 pub unsafe fn init() {
-    let cs: u16;
-    // SAFETY: Đọc thanh ghi CS hiện tại của CPU
-    asm!("mov {:x}, cs", out(reg) cs);
+    let cs = crate::arch::x86_64::gdt::KERNEL_CODE_SELECTOR;
 
     // Đăng ký các exception handlers thiết yếu
     IDT.entries[0].set_handler(divide_by_zero_handler as *const () as u64, cs);

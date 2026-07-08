@@ -20,6 +20,11 @@ if [ -n "${KERNEL_FEATURES:-}" ]; then
     KERNEL_FEATURE_ARGS=(--features "$KERNEL_FEATURES")
 fi
 
+echo "[AXIOMOS] Biên dịch Userspace Init..."
+RUSTFLAGS="-C relocation-model=static -C link-arg=-no-pie -C link-arg=-Tlinker.ld" cargo +nightly build --manifest-path userspace/init/Cargo.toml --target x86_64-unknown-none \
+    -Zbuild-std=core
+
+echo "[AXIOMOS] Biên dịch Kernel..."
 cargo +nightly build --manifest-path kernel/Cargo.toml --target x86_64-unknown-none \
     "${KERNEL_FEATURE_ARGS[@]}" \
     -Zbuild-std=core,alloc,compiler_builtins \
@@ -55,6 +60,10 @@ mcopy -o -i target/esp.img target/kernel-stripped.elf ::/boot/kernel.elf
 mcopy -o -i target/esp.img target/kernel-stripped.elf ::/kernel.elf
 mcopy -o -i target/esp.img assets/boot/limine.cfg ::/boot/limine.cfg
 mcopy -o -i target/esp.img assets/limine/limine-bios.sys ::/boot/
+
+# Sao chép userspace init ELF thành /init.elf ở root phân vùng FAT32
+mcopy -o -i target/esp.img userspace/target/x86_64-unknown-none/debug/init ::/init.elf
+
 mcopy -o -i target/esp.img assets/boot/limine.cfg ::/limine.cfg
 mcopy -o -i target/esp.img assets/boot/limine.cfg ::/EFI/BOOT/limine.cfg
 mcopy -o -i target/esp.img assets/boot/limine.cfg ::/boot/limine.conf
@@ -71,4 +80,3 @@ chmod +x assets/limine/limine
 assets/limine/limine bios-install target/axiomOS.img
 
 echo "[AXIOMOS] Đóng gói đĩa ảo target/axiomOS.img thành công!"
-
