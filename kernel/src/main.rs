@@ -12,6 +12,7 @@ pub mod fs;
 pub mod logging;
 pub mod memory;
 pub mod process;
+pub mod syscall;
 pub mod utils;
 
 #[cfg(not(test))]
@@ -111,6 +112,15 @@ pub extern "C" fn _start() -> ! {
 
                             // Chạy chẩn đoán thiết bị khối
                             run_block_device_diagnostics();
+
+                            // Chạy chẩn đoán trình phân tích ELF64
+                            process::elf::run_elf_parser_diagnostics();
+
+                            // Chạy chẩn đoán không gian địa chỉ người dùng
+                            memory::user_space::run_userspace_as_diagnostics();
+
+                            // Chạy chẩn đoán Syscall ABI
+                            syscall::run_syscall_diagnostics();
                         }
                     }
                 }

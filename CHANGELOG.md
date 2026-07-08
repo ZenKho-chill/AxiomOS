@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Thêm Spec 008 (Bộ nạp ELF64), Spec 010 (Tiến trình init tối thiểu) ở trạng thái APPROVED và tài liệu quyết định kiến trúc ADR-007 cho layout địa chỉ userspace và syscall ABI của Milestone 6.
+- Cập nhật mẫu PR `.github/pull_request_template.md` để tuân thủ chính xác quy tắc tạo PR trong AGENTS.md.
 - Thêm Kernel File API và VFS runtime read-only tối giản cho root mount, hỗ trợ `open`, `read`, `list_dir` và adapter FAT32 qua caller-provided buffer.
 - Thêm trình đọc FAT32 read-only kernel-internal qua `BlockDevice`, hỗ trợ mount BPB, liệt kê root directory 8.3 và đọc file theo cluster chain bằng test image `RamDisk`.
 - Thêm Spec 016 `virtual-file-system` ở trạng thái APPROVED và ADR-006 cho thiết kế VFS tối giản với một root mount read-only.
