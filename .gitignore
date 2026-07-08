@@ -11,3 +11,5 @@
 .vscode/
 .idea/
 .agents/
+*target*
+*Cargo.lock*
