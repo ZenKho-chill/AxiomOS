@@ -50,6 +50,9 @@ jobs:
           targets: x86_64-unknown-none
           components: rust-src
 
+      - name: Build Userspace Init
+        run: RUSTFLAGS="-C link-arg=-T../../userspace-linker.ld" cargo build --manifest-path userspace/init/Cargo.toml --target x86_64-unknown-none
+
       - name: Build Kernel
         run: cargo build --manifest-path kernel/Cargo.toml --target x86_64-unknown-none
 
