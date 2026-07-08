@@ -506,8 +506,11 @@ fn build_init_ramdisk(init_elf: &[u8]) -> &'static [u8] {
     boot_sector[15] = 0;
     boot_sector[16] = 1; // Number of FATs = 1
     boot_sector[21] = 0xF8; // Media descriptor
-    boot_sector[22] = 1; // Sectors per FAT = 1 (LBA 1)
+    boot_sector[22] = 0; // Sectors per FAT 16 = 0 (bắt buộc bằng 0 đối với FAT32)
     boot_sector[23] = 0;
+
+    // Ghi Sectors per FAT 32 = 1 vào byte 36-39 theo đặc tả FAT32
+    boot_sector[36..40].copy_from_slice(&1u32.to_le_bytes());
 
     let total_sec_bytes = (total_sectors as u32).to_le_bytes();
     boot_sector[32..36].copy_from_slice(&total_sec_bytes);
