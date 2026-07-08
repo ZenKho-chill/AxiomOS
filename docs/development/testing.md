@@ -16,6 +16,14 @@ AxiomOS áp dụng quy trình kiểm thử phân tầng để đảm bảo tính
    - Ví dụ: Xác minh xem kernel có in đúng chuỗi chào mừng ra cổng COM1 hay không, kiểm tra xem bộ cấp phát heap hoạt động chính xác không.
    - Các bài test này sẽ tự động hóa qua script và tích hợp trên Github Actions.
 
+3. **Userspace Tests (Kiểm thử userspace)**:
+   - Shell core Milestone 7 được kiểm thử bằng runtime giả trong `userspace/shell`.
+   - Test xác nhận shell in prompt `axiomsh> ls /`, liệt kê `INIT.ELF`, `HELLO.TXT` và in nội dung `/HELLO.TXT`.
+   - Chạy cùng bộ test host bằng:
+     ```bash
+     make test
+     ```
+
 ## Kiểm thử framebuffer panic path
 
 Spec 003 có feature test-only `panic-test` để ép kernel panic ngay sau khi framebuffer console sẵn sàng. Feature này không được bật trong image mặc định.

@@ -10,41 +10,29 @@ fn panic(_info: &PanicInfo) -> ! {
     loop {}
 }
 
-/// Helper gọi syscall sys_write (ID = 2)
 #[cfg(not(test))]
-unsafe fn sys_write(fd: u64, buf: *const u8, len: u64) -> u64 {
-    let ret: u64;
-    core::arch::asm!(
-        "syscall",
-        in("rax") 2u64,
-        in("rdi") fd,
-        in("rsi") buf,
-        in("rdx") len,
-        out("rcx") _, // CPU ghi đè rip cũ vào rcx
-        out("r11") _, // CPU ghi đè rflags cũ vào r11
-        lateout("rax") ret,
-    );
-    ret
-}
+struct InitRuntime;
 
-/// Helper gọi syscall sys_exit (ID = 1)
 #[cfg(not(test))]
-unsafe fn sys_exit(code: u64) -> ! {
-    core::arch::asm!(
-        "syscall",
-        in("rax") 1u64,
-        in("rdi") code,
-        options(noreturn),
-    );
+impl shell::ShellRuntime for InitRuntime {
+    fn write(&mut self, bytes: &[u8]) {
+        let _ = axiom_libc::write(axiom_libc::STDOUT, bytes);
+    }
+
+    fn list_dir(&mut self, path: &str, output: &mut [u8]) -> Result<usize, shell::ShellError> {
+        axiom_libc::list_dir(path, output).map_err(|_| shell::ShellError::Io)
+    }
+
+    fn read_file(&mut self, path: &str, output: &mut [u8]) -> Result<usize, shell::ShellError> {
+        axiom_libc::read_file(path, output).map_err(|_| shell::ShellError::Io)
+    }
 }
 
 /// Điểm vào của chương trình userspace init
 #[cfg(not(test))]
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-    let msg = "[AXIOMOS USERSPACE] Hello from init process!\n";
-    unsafe {
-        sys_write(1, msg.as_ptr(), msg.len() as u64);
-        sys_exit(0);
-    }
+    let mut runtime = InitRuntime;
+    let exit_code = shell::run_minimal_shell(&mut runtime);
+    axiom_libc::exit(exit_code as u64);
 }

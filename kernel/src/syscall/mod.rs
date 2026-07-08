@@ -84,6 +84,15 @@ pub static mut USER_RSP: u64 = 0;
 #[no_mangle]
 pub static mut KERNEL_RSP: u64 = 0;
 
+const SYSCALL_EXIT: u64 = 1;
+const SYSCALL_WRITE: u64 = 2;
+const SYSCALL_YIELD: u64 = 3;
+const SYSCALL_LIST_DIR: u64 = 4;
+const SYSCALL_READ_FILE: u64 = 5;
+const SYSCALL_ERROR: u64 = u64::MAX;
+const USER_LIMIT: u64 = 0x0000_8000_0000_0000;
+const MAX_USER_PATH_LEN: usize = 64;
+
 // Các địa chỉ Model Specific Registers (MSRs) cho syscall x86_64
 const MSR_EFER: u32 = 0xC0000080;
 const MSR_STAR: u32 = 0xC0000081;
@@ -165,25 +174,27 @@ pub extern "C" fn syscall_dispatch(
     arg1: u64,
     arg2: u64,
     arg3: u64,
-    _arg4: u64,
+    arg4: u64,
     _arg5: u64,
 ) -> u64 {
     match id {
-        1 => {
+        SYSCALL_EXIT => {
             // sys_exit
             sys_exit(arg1);
         }
-        2 => {
+        SYSCALL_WRITE => {
             // sys_write
             sys_write(arg1, arg2, arg3)
         }
-        3 => {
+        SYSCALL_YIELD => {
             // sys_yield
             sys_yield()
         }
+        SYSCALL_LIST_DIR => sys_list_dir(arg1, arg2, arg3, arg4),
+        SYSCALL_READ_FILE => sys_read_file(arg1, arg2, arg3, arg4),
         _ => {
             crate::serial_println!("[AXIOMOS SYSCALL] Unknown syscall: {}", id);
-            u64::MAX
+            SYSCALL_ERROR
         }
     }
 }
@@ -212,35 +223,24 @@ fn sys_exit(code: u64) -> ! {
 fn sys_write(fd: u64, buf_ptr: u64, len: u64) -> u64 {
     // Chỉ chấp nhận stdout (1) và stderr (2)
     if fd != 1 && fd != 2 {
-        return u64::MAX;
+        return SYSCALL_ERROR;
     }
 
-    // Bảo vệ an toàn bộ nhớ: validate con trỏ truyền vào từ userspace
-    // Con trỏ phải nằm hoàn toàn dưới vùng nhớ userspace (địa chỉ ảo < 0x0000800000000000)
-    let user_limit = 0x0000_8000_0000_0000u64;
-
-    if buf_ptr >= user_limit {
-        return u64::MAX;
-    }
-
-    if let Some(end_addr) = buf_ptr.checked_add(len) {
-        if end_addr > user_limit {
-            return u64::MAX;
-        }
-    } else {
-        return u64::MAX; // Tràn số nguyên
-    }
+    let (addr, len) = match validate_user_range(buf_ptr, len) {
+        Ok(range) => range,
+        Err(()) => return SYSCALL_ERROR,
+    };
 
     // Đọc an toàn từ buffer của userspace
     // SAFETY: Chúng ta đã kiểm tra con trỏ nằm trong không gian userspace.
     unsafe {
-        let slice = core::slice::from_raw_parts(buf_ptr as *const u8, len as usize);
+        let slice = core::slice::from_raw_parts(addr as *const u8, len);
         if let Ok(s) = core::str::from_utf8(slice) {
             crate::serial_print!("{}", s);
             crate::console::framebuffer::framebuffer_print(format_args!("{}", s));
-            len
+            len as u64
         } else {
-            u64::MAX
+            SYSCALL_ERROR
         }
     }
 }
@@ -249,6 +249,118 @@ fn sys_write(fd: u64, buf_ptr: u64, len: u64) -> u64 {
 fn sys_yield() -> u64 {
     crate::process::scheduler::yield_now();
     0
+}
+
+/// Syscall 4: sys_list_dir - Liệt kê thư mục read-only vào buffer userspace.
+fn sys_list_dir(path_ptr: u64, path_len: u64, out_ptr: u64, out_len: u64) -> u64 {
+    let mut path_storage = [0u8; MAX_USER_PATH_LEN];
+    let path = match copy_user_path(path_ptr, path_len, &mut path_storage) {
+        Ok(path) => path,
+        Err(()) => return SYSCALL_ERROR,
+    };
+
+    let (out_addr, out_len) = match validate_user_range(out_ptr, out_len) {
+        Ok(range) => range,
+        Err(()) => return SYSCALL_ERROR,
+    };
+
+    // SAFETY: Vùng output đã được validate nằm trong canonical userspace range.
+    let output = unsafe { core::slice::from_raw_parts_mut(out_addr as *mut u8, out_len) };
+    let mut sink = UserDirListSink::new(output);
+
+    match crate::fs::kernel_file::kernel_list_dir(path, &mut sink) {
+        Ok(()) => sink.written() as u64,
+        Err(_) => SYSCALL_ERROR,
+    }
+}
+
+/// Syscall 5: sys_read_file - Đọc file read-only vào buffer userspace.
+fn sys_read_file(path_ptr: u64, path_len: u64, out_ptr: u64, out_len: u64) -> u64 {
+    let mut path_storage = [0u8; MAX_USER_PATH_LEN];
+    let path = match copy_user_path(path_ptr, path_len, &mut path_storage) {
+        Ok(path) => path,
+        Err(()) => return SYSCALL_ERROR,
+    };
+
+    let (out_addr, out_len) = match validate_user_range(out_ptr, out_len) {
+        Ok(range) => range,
+        Err(()) => return SYSCALL_ERROR,
+    };
+
+    // SAFETY: Vùng output đã được validate nằm trong canonical userspace range.
+    let output = unsafe { core::slice::from_raw_parts_mut(out_addr as *mut u8, out_len) };
+
+    match crate::fs::kernel_file::kernel_read_file(path, output) {
+        Ok(bytes_read) => bytes_read as u64,
+        Err(_) => SYSCALL_ERROR,
+    }
+}
+
+fn validate_user_range(ptr: u64, len: u64) -> Result<(usize, usize), ()> {
+    if len == 0 || ptr >= USER_LIMIT {
+        return Err(());
+    }
+
+    let end_addr = ptr.checked_add(len).ok_or(())?;
+    if end_addr > USER_LIMIT {
+        return Err(());
+    }
+
+    let addr = usize::try_from(ptr).map_err(|_| ())?;
+    let len = usize::try_from(len).map_err(|_| ())?;
+    Ok((addr, len))
+}
+
+fn copy_user_path<'a>(
+    path_ptr: u64,
+    path_len: u64,
+    storage: &'a mut [u8; MAX_USER_PATH_LEN],
+) -> Result<&'a str, ()> {
+    let (addr, len) = validate_user_range(path_ptr, path_len)?;
+    if len == 0 || len >= storage.len() {
+        return Err(());
+    }
+
+    // SAFETY: Vùng path userspace đã được validate trước khi copy vào buffer kernel cố định.
+    let user_path = unsafe { core::slice::from_raw_parts(addr as *const u8, len) };
+    storage[..len].copy_from_slice(user_path);
+    core::str::from_utf8(&storage[..len]).map_err(|_| ())
+}
+
+struct UserDirListSink<'a> {
+    output: &'a mut [u8],
+    written: usize,
+}
+
+impl<'a> UserDirListSink<'a> {
+    fn new(output: &'a mut [u8]) -> Self {
+        Self { output, written: 0 }
+    }
+
+    const fn written(&self) -> usize {
+        self.written
+    }
+
+    fn push_bytes(&mut self, bytes: &[u8]) -> Result<(), crate::fs::vfs::VfsError> {
+        let end = self
+            .written
+            .checked_add(bytes.len())
+            .ok_or(crate::fs::vfs::VfsError::SinkFull)?;
+        if end > self.output.len() {
+            return Err(crate::fs::vfs::VfsError::SinkFull);
+        }
+
+        self.output[self.written..end].copy_from_slice(bytes);
+        self.written = end;
+        Ok(())
+    }
+}
+
+impl crate::fs::vfs::DirEntrySink for UserDirListSink<'_> {
+    fn push(&mut self, entry: crate::fs::vfs::DirEntry) -> Result<(), crate::fs::vfs::VfsError> {
+        self.push_bytes(entry.name_bytes())?;
+        self.push_bytes(b"\n")
+    }
 }
 
 /// Chạy chẩn đoán (diagnostics) cấu hình phần cứng Syscall

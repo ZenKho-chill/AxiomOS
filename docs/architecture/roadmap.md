@@ -56,10 +56,11 @@ Tài liệu này xác định các cột mốc phát triển (Milestones) của 
 - [x] Tiến trình khởi tạo đầu tiên (`init`).
 
 ### Milestone 7: Môi trường Userspace Tối giản
-- [ ] Tiến trình `init` chạy thành công ở chế độ User Mode (Ring 3).
-- [ ] Chương trình dòng lệnh `shell` cơ bản.
-- [ ] Hỗ trợ các lệnh cơ bản: liệt kê file (`ls`), đọc nội dung file (`cat`).
-- [ ] Thư viện chuẩn C tối giản cho userspace (`libc`).
+- [x] Tiến trình `init` chạy thành công ở chế độ User Mode (Ring 3).
+- [x] Shell core cơ bản được `init` host cho lát cắt Milestone 7.
+- [x] Hỗ trợ các lệnh scripted cơ bản: liệt kê file (`ls`), đọc nội dung file (`cat`).
+- [x] Thư viện syscall userspace tối giản (`libc`).
+- [ ] Shell interactive và shell ELF riêng được hoãn sang spec sau.
 
 ### Milestone 8: Nghiên Cứu Môi Trường Desktop
 - [ ] Đặc tả thiết kế cho bộ tổng hợp đồ họa (Compositor).

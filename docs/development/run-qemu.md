@@ -46,6 +46,13 @@ qemu-system-x86_64 \
 [AXIOMOS] Bootloader handoff complete
 [AXIOMOS] Kernel started
 [AXIOMOS] Serial logger initialized
+[AXIOMOS USERSPACE] init entered Ring 3
+axiomsh> ls /
+INIT.ELF
+HELLO.TXT
+axiomsh> cat /HELLO.TXT
+Hello from AxiomOS userspace file.
+[AXIOMOS] init exited with code 0
 [AXIOMOS] System halted
 ```
 

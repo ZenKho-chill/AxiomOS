@@ -140,6 +140,18 @@ pub fn run_userspace_as_diagnostics() {
             kernel_l4_entry & 1 != 0,
             "Lỗi: Entry kernel 256 của bảng userspace phải PRESENT"
         );
+
+        let heap_l4_index = ((crate::memory::heap::HEAP_START as u64 >> 39) & 0x1FF) as usize;
+        let heap_l4_entry = l4_ptr.add(heap_l4_index).read();
+        assert!(
+            heap_l4_entry & 1 != 0,
+            "Lỗi: Entry kernel heap của bảng userspace phải PRESENT"
+        );
+        assert_eq!(
+            heap_l4_entry & 4,
+            0,
+            "Lỗi: Kernel heap mapping không được bật cờ USER"
+        );
     }
 
     // 5. Drop UserAddressSpace giải phóng an toàn bộ nhớ
