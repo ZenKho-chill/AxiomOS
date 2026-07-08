@@ -16,6 +16,9 @@ pub mod syscall;
 pub mod utils;
 
 #[cfg(not(test))]
+static INIT_ELF_BYTES: &[u8] =
+    include_bytes!("../../userspace/target/x86_64-unknown-none/debug/init");
+#[cfg(not(test))]
 use core::panic::PanicInfo;
 
 /// Điểm vào Kernel (Kernel Entry Point)
@@ -121,6 +124,21 @@ pub extern "C" fn _start() -> ! {
 
                             // Chạy chẩn đoán Syscall ABI
                             syscall::run_syscall_diagnostics();
+
+                            // Khởi tạo FAT32 RAM Disk thực tế từ INIT_ELF_BYTES
+                            let disk_data = build_init_ramdisk(INIT_ELF_BYTES);
+                            let disk = drivers::block::RamDisk::new(disk_data);
+                            let static_disk = alloc::boxed::Box::leak(alloc::boxed::Box::new(disk));
+                            drivers::block::register_system_block_device(*static_disk);
+
+                            // Mount root filesystem FAT32 vào VFS
+                            let volume = fs::fat32::mount_fat32(static_disk)
+                                .expect("Lỗi: Không mount được FAT32");
+                            let filesystem = alloc::boxed::Box::leak(alloc::boxed::Box::new(
+                                fs::fat32::Fat32FileSystem::new(volume),
+                            ));
+                            fs::vfs::mount_root(filesystem)
+                                .expect("Lỗi: Không mount được root VFS");
                         }
                     }
                 }
@@ -143,58 +161,17 @@ pub extern "C" fn _start() -> ! {
     logging::boot("Bootloader handoff complete");
     logging::boot("Kernel started");
     logging::boot("Serial logger initialized");
-    logging::boot("System halted");
 
-    // Bật ngắt phần cứng trên PIC và CPU sau khi đã in xong boot sequence
-    // SAFETY: Bật ngắt thông qua unmask và sti yêu cầu đặc quyền Ring 0.
+    // Bật ngắt phần cứng trên PIC
     unsafe {
         drivers::pic::unmask(0); // Timer (IRQ 0)
         drivers::pic::unmask(1); // Keyboard (IRQ 1)
-        core::arch::asm!("sti");
     }
 
-    // Vòng lặp chính xử lý nhập từ bàn phím
-    let mut shift_pressed = false;
-    let mut last_ticks = 0;
-    loop {
-        // Đọc và in ticks ngắt Timer an toàn trong main loop
-        let current_ticks =
-            arch::x86_64::idt::TIMER_TICKS.load(core::sync::atomic::Ordering::Relaxed);
-        if current_ticks - last_ticks >= 100 {
-            logging::info("TIMER", format_args!("Ticks: {}", current_ticks), false);
-            last_ticks = current_ticks;
-        }
-
-        if let Some(event) = drivers::keyboard::poll_key_event() {
-            if event.key_code == drivers::keyboard::KeyCode::LShift
-                || event.key_code == drivers::keyboard::KeyCode::RShift
-            {
-                shift_pressed = event.pressed;
-            }
-
-            if event.pressed {
-                if let Some(c) = drivers::keyboard::keycode_to_char(event.key_code, shift_pressed) {
-                    serial_println!("[KEY] Pressed char: {}", c);
-                    console::framebuffer::framebuffer_println(format_args!(
-                        "[KEY] Pressed char: {}",
-                        c
-                    ));
-                } else {
-                    serial_println!("[KEY] Pressed special: {:?}", event.key_code);
-                    console::framebuffer::framebuffer_println(format_args!(
-                        "[KEY] Pressed special: {:?}",
-                        event.key_code
-                    ));
-                }
-            } else {
-                serial_println!("[KEY] Released: {:?}", event.key_code);
-            }
-        }
-
-        // SAFETY: hlt dừng CPU tạm thời cho tới khi ngắt tiếp theo xảy ra để tiết kiệm năng lượng
-        unsafe {
-            core::arch::asm!("hlt");
-        }
+    // Khởi động tiến trình userspace init
+    let pid = process::spawn_init("/INIT.ELF").expect("Lỗi: Không spawn được init");
+    unsafe {
+        process::enter_userspace(pid);
     }
 }
 
@@ -504,4 +481,74 @@ fn run_block_device_diagnostics() {
     }
 
     serial_println!("[AXIOMOS BLOCK] Chạy chẩn đoán thiết bị khối: THÀNH CÔNG");
+}
+
+/// Dựng cấu trúc ảnh đĩa FAT32 tối giản trực tiếp trong RAM chứa duy nhất tệp tin /INIT.ELF
+fn build_init_ramdisk(init_elf: &[u8]) -> &'static [u8] {
+    use alloc::boxed::Box;
+
+    let sector_size = 512;
+    let file_sectors = (init_elf.len() + 511) / 512;
+    let total_sectors = 3 + file_sectors;
+    let mut image = alloc::vec![0u8; sector_size * total_sectors];
+
+    // 1. Dựng Boot Sector (LBA 0)
+    let boot_sector = &mut image[0..512];
+    boot_sector[0] = 0xEB;
+    boot_sector[1] = 0x58;
+    boot_sector[2] = 0x90;
+    boot_sector[3..11].copy_from_slice(b"AXIOMOS ");
+
+    boot_sector[11] = 0x00;
+    boot_sector[12] = 0x02; // Sector size = 512 bytes
+    boot_sector[13] = 1; // 1 sector per cluster
+    boot_sector[14] = 1; // Reserved sectors = 1 (LBA 0)
+    boot_sector[15] = 0;
+    boot_sector[16] = 1; // Number of FATs = 1
+    boot_sector[21] = 0xF8; // Media descriptor
+    boot_sector[22] = 1; // Sectors per FAT = 1 (LBA 1)
+    boot_sector[23] = 0;
+
+    let total_sec_bytes = (total_sectors as u32).to_le_bytes();
+    boot_sector[32..36].copy_from_slice(&total_sec_bytes);
+    boot_sector[44..48].copy_from_slice(&2u32.to_le_bytes()); // Root dir cluster = 2
+    boot_sector[510] = 0x55;
+    boot_sector[511] = 0xAA;
+
+    // 2. Dựng bảng FAT (LBA 1)
+    let fat_offset = 512;
+    image[fat_offset..fat_offset + 4].copy_from_slice(&0x0FFF_FFF8u32.to_le_bytes());
+    image[fat_offset + 4..fat_offset + 8].copy_from_slice(&0x0FFF_FFFFu32.to_le_bytes());
+    image[fat_offset + 8..fat_offset + 12].copy_from_slice(&0x0FFF_FFFFu32.to_le_bytes()); // Cluster 2
+
+    for i in 0..file_sectors {
+        let cluster = 3 + i as u32;
+        let next_val = if i == file_sectors - 1 {
+            0x0FFF_FFFFu32
+        } else {
+            cluster + 1
+        };
+        let entry_offset = fat_offset + (cluster as usize * 4);
+        image[entry_offset..entry_offset + 4].copy_from_slice(&next_val.to_le_bytes());
+    }
+
+    // 3. Dựng Root Directory (LBA 2, Cluster 2)
+    let root_offset = 2 * 512;
+    let name = b"INIT    ELF"; // Định dạng shortname 8.3
+    image[root_offset..root_offset + 11].copy_from_slice(name);
+    image[root_offset + 11] = 0x20; // Archive attribute
+    image[root_offset + 20] = 0;
+    image[root_offset + 21] = 0;
+
+    let first_cluster_bytes = 3u16.to_le_bytes(); // INIT.ELF dữ liệu bắt đầu ở Cluster 3
+    image[root_offset + 26..root_offset + 28].copy_from_slice(&first_cluster_bytes);
+
+    let size_bytes = (init_elf.len() as u32).to_le_bytes();
+    image[root_offset + 28..root_offset + 32].copy_from_slice(&size_bytes);
+
+    // 4. Ghi dữ liệu INIT.ELF (LBA 3 trở đi)
+    let data_offset = 3 * 512;
+    image[data_offset..data_offset + init_elf.len()].copy_from_slice(init_elf);
+
+    Box::leak(image.into_boxed_slice())
 }

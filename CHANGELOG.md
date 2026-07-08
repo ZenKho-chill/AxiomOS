@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Hoàn thành hiện thực hóa Milestone 6 (Program Loading & Userspace Init):
+  - Triển khai trình phân tích cấu trúc ELF64 (elf-parser) xác thực magic bytes, OS/ABI và phân tách Program Headers.
+  - Triển khai trình nạp chương trình ELF64 (elf-loader) duyệt các phân đoạn `PT_LOAD`, nạp dữ liệu và zero-init BSS an toàn chống memory leak bằng `CleanupGuard`.
+  - Triển khai Không gian địa chỉ người dùng (Userspace Address Space) hỗ trợ sao chép bảng trang ảo kernel để cô lập, map ảnh ELF và giải phóng tài nguyên.
+  - Triển khai Giao diện cuộc gọi hệ thống (Syscall ABI) qua MSRs (`EFER`, `STAR`, `LSTAR`, `FMASK`), handler Assembly `sys_entry` lưu/khôi phục registers, và điều phối 3 syscalls `sys_exit`, `sys_write` (validate con trỏ), `sys_yield`.
+  - Triển khai chương trình userspace `/init.elf` độc lập (`no_std`, `no_main`), liên kết statically tại địa chỉ `0x400000`, nhảy sang Ring 3 qua `iretq` thành công.
 - Thêm Spec 008 (Bộ nạp ELF64), Spec 010 (Tiến trình init tối thiểu) ở trạng thái APPROVED và tài liệu quyết định kiến trúc ADR-007 cho layout địa chỉ userspace và syscall ABI của Milestone 6.
 - Cập nhật mẫu PR `.github/pull_request_template.md` để tuân thủ chính xác quy tắc tạo PR trong AGENTS.md.
 - Thêm Kernel File API và VFS runtime read-only tối giản cho root mount, hỗ trợ `open`, `read`, `list_dir` và adapter FAT32 qua caller-provided buffer.
@@ -62,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sửa khởi tạo heap để không fallback HHDM về `0`; kernel giờ chỉ init heap khi HHDM offset đã được memory module xác thực.
 
 ### Changed
+- Chuyển trạng thái spec `008-elf-loader` và `010-userspace-init` sang `COMPLETE` sau khi đã nạp thành công chương trình userspace init thực thi Ring 3 và thực hiện exit 0.
 - Chuyển Spec 016 `virtual-file-system` và Spec 017 `kernel-file-api` sang trạng thái TESTING sau khi có VFS runtime và Kernel File API read-only.
 - Chuyển trạng thái spec `007-fat32-readonly` sang `APPROVED` sau khi Spec 015 block device abstraction đã hoàn tất.
 - Chuyển trạng thái specs `000-project-charter`, `001-boot-and-kernel-entry` và `002-serial-logging` sang `COMPLETE` sau khi acceptance criteria đã được xác minh.

@@ -195,6 +195,9 @@ fn sys_exit(code: u64) -> ! {
         code
     ));
 
+    crate::serial_println!("[AXIOMOS] System halted");
+    crate::console::framebuffer::framebuffer_println(format_args!("[AXIOMOS] System halted"));
+
     // Ở Milestone 6, init kết thúc đồng nghĩa với việc halt CPU an toàn
     loop {
         // SAFETY: cli và hlt dừng CPU an toàn yêu cầu Ring 0
