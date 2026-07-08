@@ -1,4 +1,5 @@
 use crate::memory::frame::{allocate_frame, MemoryError, PAGE_SIZE};
+use crate::memory::heap::{HEAP_SIZE, HEAP_START};
 
 #[repr(C, align(4096))]
 struct PageTable {
@@ -62,9 +63,36 @@ pub fn create_user_page_table(hhdm: u64) -> Result<u64, MemoryError> {
         for i in 256..512 {
             (*new_l4_virt).entries[i] = (*curr_l4_virt).entries[i];
         }
+
+        // Kernel heap hiện nằm ở lower-half nhưng vẫn là supervisor-only mapping.
+        // Syscall handler cần truy cập VFS/alloc object trên heap khi CR3 đang là userspace page table.
+        copy_supervisor_l4_range(
+            &mut *new_l4_virt,
+            &*curr_l4_virt,
+            HEAP_START as u64,
+            HEAP_SIZE as u64,
+        );
     }
 
     Ok(new_l4_phys)
+}
+
+fn copy_supervisor_l4_range(target: &mut PageTable, source: &PageTable, start_addr: u64, len: u64) {
+    if len == 0 {
+        return;
+    }
+
+    let end_addr = start_addr.saturating_add(len - 1);
+    let start_idx = l4_index(start_addr);
+    let end_idx = l4_index(end_addr);
+
+    for index in start_idx..=end_idx {
+        target.entries[index] = source.entries[index] & !FLAG_USER;
+    }
+}
+
+fn l4_index(virt_addr: u64) -> usize {
+    ((virt_addr >> 39) & 0x1FF) as usize
 }
 
 /// Ánh xạ một trang ảo vào một bảng trang L4 cụ thể (sử dụng địa chỉ vật lý L4)

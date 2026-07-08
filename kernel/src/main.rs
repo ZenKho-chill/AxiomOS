@@ -486,19 +486,22 @@ fn run_block_device_diagnostics() {
     serial_println!("[AXIOMOS BLOCK] Chạy chẩn đoán thiết bị khối: THÀNH CÔNG");
 }
 
-/// Dựng cấu trúc ảnh đĩa FAT32 tối giản trực tiếp trong RAM chứa duy nhất tệp tin /INIT.ELF
+/// Dựng cấu trúc ảnh đĩa FAT32 tối giản trực tiếp trong RAM chứa init và dữ liệu shell mẫu.
 fn build_init_ramdisk(init_elf: &[u8]) -> &'static [u8] {
     use alloc::boxed::Box;
 
     let sector_size = 512;
-    let file_sectors = (init_elf.len() + 511) / 512;
+    let hello_file = b"Hello from AxiomOS userspace file.\n";
+    let init_file_sectors = sectors_for_len(init_elf.len());
+    let hello_file_sectors = sectors_for_len(hello_file.len());
+    let total_file_sectors = init_file_sectors + hello_file_sectors;
 
-    // Tính toán số sectors cho bảng FAT dựa trên kích thước file thực tế
-    let fat_entries = 3 + file_sectors;
+    // Tính toán số sectors cho bảng FAT dựa trên kích thước file thực tế.
+    let fat_entries = 3 + total_file_sectors;
     let fat_size_bytes = fat_entries * 4;
     let fat_sectors = (fat_size_bytes + 511) / 512;
 
-    let total_sectors = 2 + fat_sectors + file_sectors;
+    let total_sectors = 2 + fat_sectors + total_file_sectors;
     let mut image = alloc::vec![0u8; sector_size * total_sectors];
 
     // 1. Dựng Boot Sector (LBA 0)
@@ -533,9 +536,57 @@ fn build_init_ramdisk(init_elf: &[u8]) -> &'static [u8] {
     image[fat_offset + 4..fat_offset + 8].copy_from_slice(&0x0FFF_FFFFu32.to_le_bytes());
     image[fat_offset + 8..fat_offset + 12].copy_from_slice(&0x0FFF_FFFFu32.to_le_bytes()); // Cluster 2 (End of Chain)
 
-    for i in 0..file_sectors {
-        let cluster = 3 + i as u32;
-        let next_val = if i == file_sectors - 1 {
+    let init_first_cluster = 3u32;
+    let hello_first_cluster = init_first_cluster + init_file_sectors as u32;
+    write_fat_chain(
+        &mut image,
+        fat_offset,
+        init_first_cluster,
+        init_file_sectors,
+    );
+    write_fat_chain(
+        &mut image,
+        fat_offset,
+        hello_first_cluster,
+        hello_file_sectors,
+    );
+
+    // 3. Dựng Root Directory (LBA 1 + fat_sectors, Cluster 2)
+    let root_offset = (1 + fat_sectors) * 512;
+    write_root_entry(
+        &mut image,
+        root_offset,
+        0,
+        b"INIT    ELF",
+        init_first_cluster,
+        init_elf.len(),
+    );
+    write_root_entry(
+        &mut image,
+        root_offset,
+        1,
+        b"HELLO   TXT",
+        hello_first_cluster,
+        hello_file.len(),
+    );
+
+    // 4. Ghi dữ liệu file theo cluster chain liên tiếp.
+    write_file_data(&mut image, fat_sectors, init_first_cluster, init_elf);
+    write_file_data(&mut image, fat_sectors, hello_first_cluster, hello_file);
+
+    Box::leak(image.into_boxed_slice())
+}
+
+#[cfg(not(test))]
+fn sectors_for_len(len: usize) -> usize {
+    (len + 511) / 512
+}
+
+#[cfg(not(test))]
+fn write_fat_chain(image: &mut [u8], fat_offset: usize, first_cluster: u32, sector_count: usize) {
+    for i in 0..sector_count {
+        let cluster = first_cluster + i as u32;
+        let next_val = if i == sector_count - 1 {
             0x0FFF_FFFFu32
         } else {
             cluster + 1
@@ -543,24 +594,30 @@ fn build_init_ramdisk(init_elf: &[u8]) -> &'static [u8] {
         let entry_offset = fat_offset + (cluster as usize * 4);
         image[entry_offset..entry_offset + 4].copy_from_slice(&next_val.to_le_bytes());
     }
+}
 
-    // 3. Dựng Root Directory (LBA 1 + fat_sectors, Cluster 2)
-    let root_offset = (1 + fat_sectors) * 512;
-    let name = b"INIT    ELF"; // Định dạng shortname 8.3
-    image[root_offset..root_offset + 11].copy_from_slice(name);
-    image[root_offset + 11] = 0x20; // Archive attribute
-    image[root_offset + 20] = 0;
-    image[root_offset + 21] = 0;
+#[cfg(not(test))]
+fn write_root_entry(
+    image: &mut [u8],
+    root_offset: usize,
+    index: usize,
+    name: &[u8; 11],
+    first_cluster: u32,
+    size: usize,
+) {
+    let entry_offset = root_offset + index * 32;
+    image[entry_offset..entry_offset + 11].copy_from_slice(name);
+    image[entry_offset + 11] = 0x20; // Archive attribute
+    image[entry_offset + 20..entry_offset + 22]
+        .copy_from_slice(&((first_cluster >> 16) as u16).to_le_bytes());
+    image[entry_offset + 26..entry_offset + 28]
+        .copy_from_slice(&(first_cluster as u16).to_le_bytes());
+    image[entry_offset + 28..entry_offset + 32].copy_from_slice(&(size as u32).to_le_bytes());
+}
 
-    let first_cluster_bytes = 3u16.to_le_bytes(); // INIT.ELF dữ liệu bắt đầu ở Cluster 3
-    image[root_offset + 26..root_offset + 28].copy_from_slice(&first_cluster_bytes);
-
-    let size_bytes = (init_elf.len() as u32).to_le_bytes();
-    image[root_offset + 28..root_offset + 32].copy_from_slice(&size_bytes);
-
-    // 4. Ghi dữ liệu INIT.ELF (LBA 2 + fat_sectors trở đi)
-    let data_offset = (2 + fat_sectors) * 512;
-    image[data_offset..data_offset + init_elf.len()].copy_from_slice(init_elf);
-
-    Box::leak(image.into_boxed_slice())
+#[cfg(not(test))]
+fn write_file_data(image: &mut [u8], fat_sectors: usize, first_cluster: u32, data: &[u8]) {
+    let cluster_lba = (1 + fat_sectors) + (first_cluster as usize - 2);
+    let data_offset = cluster_lba * 512;
+    image[data_offset..data_offset + data.len()].copy_from_slice(data);
 }

@@ -13,6 +13,27 @@ AxiomOS hiện chưa công bố kernel ABI ổn định cho userspace. Các inte
 Mọi thay đổi ABI userspace sau này phải cập nhật tài liệu này, spec liên quan,
 ADR liên quan và `CHANGELOG.md`.
 
+## Syscall ABI hiện tại
+
+ABI syscall hiện tại chỉ phục vụ milestone sớm và chưa ổn định. Userspace gọi lệnh
+`syscall` trên x86_64 với:
+
+- `rax`: syscall ID.
+- `rdi`, `rsi`, `rdx`, `r10`, `r8`, `r9`: tối đa 6 tham số.
+- `rax`: giá trị trả về.
+- `u64::MAX`: lỗi syscall.
+
+| ID | Tên | Tham số | Kết quả | Spec |
+| --- | --- | --- | --- | --- |
+| 1 | `sys_exit` | `code` | Không quay lại | 010 |
+| 2 | `sys_write` | `fd`, `buf_ptr`, `len` | Số byte đã ghi hoặc `u64::MAX` | 010 |
+| 3 | `sys_yield` | Không có | `0` hoặc `u64::MAX` | 010 |
+| 4 | `sys_list_dir` | `path_ptr`, `path_len`, `out_ptr`, `out_len` | Số byte danh sách đã ghi hoặc `u64::MAX` | 018 |
+| 5 | `sys_read_file` | `path_ptr`, `path_len`, `out_ptr`, `out_len` | Số byte file đã đọc hoặc `u64::MAX` | 018 |
+
+`sys_list_dir` ghi danh sách entry theo dạng newline-delimited vào buffer userspace.
+Format này là tạm thời cho Milestone 7 và chưa phải ABI ổn định.
+
 ## Filesystem internal API
 
 Spec 007 hiện cung cấp API kernel-internal cho FAT32 read-only qua module
@@ -44,5 +65,5 @@ pub fn kernel_list_dir(path: &str, sink: &mut dyn DirEntrySink) -> Result<(), Vf
 ```
 
 Các API này dùng VFS tối giản trong `kernel/src/fs/vfs.rs`, nhận buffer từ
-caller và chưa phải ABI userspace. Syscall ABI, file descriptor theo process,
-permissions và write path vẫn được hoãn sang Milestone 6 hoặc spec sau.
+caller và là backend cho syscall read-only của Spec 018. File descriptor theo
+process, permissions và write path vẫn được hoãn sang spec sau.

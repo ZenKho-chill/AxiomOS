@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Thêm lát cắt Milestone 7 tối thiểu cho userspace: `init` host shell core scripted, in `axiomsh> ls /` và `axiomsh> cat /HELLO.TXT` qua syscall userspace.
+- Thêm syscall filesystem read-only `sys_list_dir` và `sys_read_file` dựa trên VFS/kernel file API hiện có, validate pointer và dùng caller-provided buffer.
+- Thêm thư viện userspace `libc` tối thiểu và shell core không cấp phát với test runtime giả.
+- Thêm file mẫu `/HELLO.TXT` vào FAT32 RAM disk để kiểm chứng lệnh `cat` trong QEMU.
+- Thêm Spec 018 `minimal-userspace-shell` và ADR-008 cho syscall filesystem read-only tối thiểu của Milestone 7.
 - Hoàn thành hiện thực hóa Milestone 6 (Program Loading & Userspace Init):
   - Triển khai trình phân tích cấu trúc ELF64 (elf-parser) xác thực magic bytes, OS/ABI và phân tách Program Headers.
   - Triển khai trình nạp chương trình ELF64 (elf-loader) duyệt các phân đoạn `PT_LOAD`, nạp dữ liệu và zero-init BSS an toàn chống memory leak bằng `CleanupGuard`.
