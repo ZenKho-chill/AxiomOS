@@ -489,7 +489,13 @@ fn build_init_ramdisk(init_elf: &[u8]) -> &'static [u8] {
 
     let sector_size = 512;
     let file_sectors = (init_elf.len() + 511) / 512;
-    let total_sectors = 3 + file_sectors;
+
+    // Tính toán số sectors cho bảng FAT dựa trên kích thước file thực tế
+    let fat_entries = 3 + file_sectors;
+    let fat_size_bytes = fat_entries * 4;
+    let fat_sectors = (fat_size_bytes + 511) / 512;
+
+    let total_sectors = 2 + fat_sectors + file_sectors;
     let mut image = alloc::vec![0u8; sector_size * total_sectors];
 
     // 1. Dựng Boot Sector (LBA 0)
@@ -509,8 +515,8 @@ fn build_init_ramdisk(init_elf: &[u8]) -> &'static [u8] {
     boot_sector[22] = 0; // Sectors per FAT 16 = 0 (bắt buộc bằng 0 đối với FAT32)
     boot_sector[23] = 0;
 
-    // Ghi Sectors per FAT 32 = 1 vào byte 36-39 theo đặc tả FAT32
-    boot_sector[36..40].copy_from_slice(&1u32.to_le_bytes());
+    // Ghi Sectors per FAT 32 vào byte 36-39 theo đặc tả FAT32
+    boot_sector[36..40].copy_from_slice(&(fat_sectors as u32).to_le_bytes());
 
     let total_sec_bytes = (total_sectors as u32).to_le_bytes();
     boot_sector[32..36].copy_from_slice(&total_sec_bytes);
@@ -518,11 +524,11 @@ fn build_init_ramdisk(init_elf: &[u8]) -> &'static [u8] {
     boot_sector[510] = 0x55;
     boot_sector[511] = 0xAA;
 
-    // 2. Dựng bảng FAT (LBA 1)
+    // 2. Dựng bảng FAT (LBA 1 đến LBA fat_sectors)
     let fat_offset = 512;
     image[fat_offset..fat_offset + 4].copy_from_slice(&0x0FFF_FFF8u32.to_le_bytes());
     image[fat_offset + 4..fat_offset + 8].copy_from_slice(&0x0FFF_FFFFu32.to_le_bytes());
-    image[fat_offset + 8..fat_offset + 12].copy_from_slice(&0x0FFF_FFFFu32.to_le_bytes()); // Cluster 2
+    image[fat_offset + 8..fat_offset + 12].copy_from_slice(&0x0FFF_FFFFu32.to_le_bytes()); // Cluster 2 (End of Chain)
 
     for i in 0..file_sectors {
         let cluster = 3 + i as u32;
@@ -535,8 +541,8 @@ fn build_init_ramdisk(init_elf: &[u8]) -> &'static [u8] {
         image[entry_offset..entry_offset + 4].copy_from_slice(&next_val.to_le_bytes());
     }
 
-    // 3. Dựng Root Directory (LBA 2, Cluster 2)
-    let root_offset = 2 * 512;
+    // 3. Dựng Root Directory (LBA 1 + fat_sectors, Cluster 2)
+    let root_offset = (1 + fat_sectors) * 512;
     let name = b"INIT    ELF"; // Định dạng shortname 8.3
     image[root_offset..root_offset + 11].copy_from_slice(name);
     image[root_offset + 11] = 0x20; // Archive attribute
@@ -549,8 +555,8 @@ fn build_init_ramdisk(init_elf: &[u8]) -> &'static [u8] {
     let size_bytes = (init_elf.len() as u32).to_le_bytes();
     image[root_offset + 28..root_offset + 32].copy_from_slice(&size_bytes);
 
-    // 4. Ghi dữ liệu INIT.ELF (LBA 3 trở đi)
-    let data_offset = 3 * 512;
+    // 4. Ghi dữ liệu INIT.ELF (LBA 2 + fat_sectors trở đi)
+    let data_offset = (2 + fat_sectors) * 512;
     image[data_offset..data_offset + init_elf.len()].copy_from_slice(init_elf);
 
     Box::leak(image.into_boxed_slice())
