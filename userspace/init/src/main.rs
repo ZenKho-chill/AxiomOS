@@ -1,14 +1,17 @@
-#![no_std]
-#![no_main]
+#![cfg_attr(not(test), no_std)]
+#![cfg_attr(not(test), no_main)]
 
+#[cfg(not(test))]
 use core::panic::PanicInfo;
 
+#[cfg(not(test))]
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
     loop {}
 }
 
 /// Helper gọi syscall sys_write (ID = 2)
+#[cfg(not(test))]
 unsafe fn sys_write(fd: u64, buf: *const u8, len: u64) -> u64 {
     let ret: u64;
     core::arch::asm!(
@@ -25,6 +28,7 @@ unsafe fn sys_write(fd: u64, buf: *const u8, len: u64) -> u64 {
 }
 
 /// Helper gọi syscall sys_exit (ID = 1)
+#[cfg(not(test))]
 unsafe fn sys_exit(code: u64) -> ! {
     core::arch::asm!(
         "syscall",
@@ -35,6 +39,7 @@ unsafe fn sys_exit(code: u64) -> ! {
 }
 
 /// Điểm vào của chương trình userspace init
+#[cfg(not(test))]
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
     let msg = "[AXIOMOS USERSPACE] Hello from init process!\n";
