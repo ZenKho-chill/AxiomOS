@@ -111,6 +111,9 @@ pub extern "C" fn _start() -> ! {
 
                             // Chạy chẩn đoán thiết bị khối
                             run_block_device_diagnostics();
+
+                            // Chạy chẩn đoán trình phân tích ELF64
+                            process::elf::run_elf_parser_diagnostics();
                         }
                     }
                 }
