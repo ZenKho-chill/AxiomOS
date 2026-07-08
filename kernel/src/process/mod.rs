@@ -159,17 +159,18 @@ pub unsafe fn enter_userspace(_pid: u32) -> ! {
 
     // Thực hiện iretq để nhảy sang Ring 3
     core::arch::asm!(
-        "push {ss}",
-        "push {rsp}",
-        "push {rflags}",
-        "push {cs}",
-        "push {rip}",
+        "sub rsp, 40",
+        "mov [rsp + 32], {ss}",
+        "mov [rsp + 24], {user_rsp}",
+        "mov [rsp + 16], {rflags}",
+        "mov [rsp + 8],  {cs}",
+        "mov [rsp + 0],  {user_rip}",
         "iretq",
         ss = in(reg) ss,
-        rsp = in(reg) user_stack_top,
+        user_rsp = in(reg) user_stack_top,
         rflags = in(reg) rflags,
         cs = in(reg) cs,
-        rip = in(reg) entry_point,
+        user_rip = in(reg) entry_point,
         options(noreturn)
     );
 }
