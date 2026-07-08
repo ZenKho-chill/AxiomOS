@@ -48,7 +48,7 @@ Tài liệu này xác định các cột mốc phát triển (Milestones) của 
 - [x] Thiết kế Hệ thống tệp tin ảo (VFS).
 - [x] API đọc tệp tin từ Kernel qua VFS read-only với caller-provided buffer.
 
-### Milestone 6: Nạp Chương Trình & Userspace
+### Milestone 6: Nạp Chương Trình & Userspace (Đang thực hiện)
 - [ ] Trình phân tích định dạng ELF64.
 - [ ] Trình nạp chương trình ELF64 (ELF64 Loader).
 - [ ] Không gian địa chỉ người dùng (Userspace Address Space).
