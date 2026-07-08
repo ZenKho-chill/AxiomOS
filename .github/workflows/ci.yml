@@ -103,10 +103,10 @@ jobs:
           echo "=== NỘI DUNG SERIAL LOG ==="
           cat serial.log
           echo "==========================="
-          if grep -q "\[AXIOMOS\] Kernel started" serial.log; then
-            echo "Test boot thành công!"
+          if grep -q "\[AXIOMOS\] System halted" serial.log; then
+            echo "Test boot thành công và hệ thống đã dừng an toàn!"
             exit 0
           else
-            echo "Lỗi: Không tìm thấy chuỗi log khởi động của AxiomOS!"
+            echo "Lỗi: Kiểm thử boot thất bại, hệ thống không đạt trạng thái halted an toàn!"
             exit 1
           fi
