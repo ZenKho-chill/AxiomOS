@@ -61,6 +61,7 @@ core::arch::global_asm!(
         pop r9
         pop r8
         pop r10
+        pop rdx
         pop rsi
         pop rdi
         pop rbp
