@@ -2,10 +2,10 @@
 
 - **Feature ID**: 008-elf-loader
 - **Tiêu đề**: Bộ nạp ELF64
-- **Trạng thái**: DRAFT
+- **Trạng thái**: APPROVED
 - **Người phụ trách**: Kỹ sư trưởng AxiomOS
 - **Ngày tạo**: 2026-07-06
-- **Ngày cập nhật**: 2026-07-06
+- **Ngày cập nhật**: 2026-07-08
 
 ---
 
@@ -45,12 +45,12 @@
 
 ## ADR liên quan
 
-- Cần ADR nếu chọn ABI userspace hoặc layout address space dài hạn.
+- [adr-007-userspace-layout-and-syscall-abi.md](../architecture/adr-007-userspace-layout-and-syscall-abi.md): Quyết định layout bộ nhớ userspace và cấu trúc syscall.
 
 ## Public interfaces
 
 ```rust
-pub fn load_elf64(bytes: &[u8], address_space: &mut AddressSpace) -> Result<LoadedImage, ElfError>;
+pub fn load_elf64(bytes: &[u8], page_table: &mut PageTable) -> Result<LoadedImage, ElfError>;
 pub fn validate_elf64(bytes: &[u8]) -> Result<ElfMetadata, ElfError>;
 ```
 
@@ -94,14 +94,14 @@ struct LoadedSegment;
 - Unit test valid ELF64 tối thiểu.
 - Unit test ELF sai magic, sai machine, segment out-of-bounds.
 - Integration test đọc ELF từ FAT32 image và validate metadata.
-- QEMU test load init ELF nhưng chưa cần chuyển quyền nếu Spec 010 chưa implement.
+- QEMU test load init ELF nhưng chưa cần chuyển quyền nếu Spec 010 chưa được implement đầy đủ.
 
 ## Acceptance criteria
 
 - **Acceptance Criterion 1**:
   - **Given** file ELF64 x86_64 hợp lệ trong FAT32 image.
   - **When** `load_elf64` chạy.
-  - **Then** loader phải trả `LoadedImage` có entry point và ít nhất một mapped segment hợp lệ.
+  - **Then** loader phải trả `LoadedImage` có entry point và các `PT_LOAD` segments được ánh xạ đúng vào page table với cờ User và quyền truy cập chính xác.
 
 - **Acceptance Criterion 2**:
   - **Given** file không phải ELF.
@@ -120,5 +120,5 @@ struct LoadedSegment;
 
 ## Câu hỏi mở
 
-- Userspace address range đầu tiên sẽ đặt ở đâu?
-- Có cần hỗ trợ relocation cho init ở milestone đầu không?
+- Userspace address range đầu tiên sẽ đặt ở đâu? -> Đã giải quyết trong [ADR-007](../architecture/adr-007-userspace-layout-and-syscall-abi.md) (Code ở `0x400000`, Stack ở `0x00007FFFFFFFF000`).
+- Có cần hỗ trợ relocation cho init ở milestone đầu không? -> Không cần, init sẽ được link tĩnh tại địa chỉ cố định.
