@@ -36,6 +36,7 @@
 - Không dùng `unwrap` hoặc `expect` trong kernel runtime path.
 - Không map segment executable và writable cùng lúc nếu không cần thiết.
 - ABI userspace phải được ghi trong `docs/design/kernel-api.md` trước khi expose.
+- ELF userspace trong milestone hiện tại phải là `EXEC` static/no-pie và các `PT_LOAD` segment phải được căn page 4 KiB để không chồng cùng một page ảo.
 
 ## Dependencies
 

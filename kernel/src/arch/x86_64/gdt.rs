@@ -4,6 +4,15 @@
 
 use core::arch::asm;
 
+pub const KERNEL_CODE_SELECTOR: u16 = 0x08;
+pub const KERNEL_DATA_SELECTOR: u16 = 0x10;
+
+#[repr(C, packed)]
+struct DescriptorTablePointer {
+    limit: u16,
+    base: u64,
+}
+
 #[repr(C, align(8))]
 struct Gdt {
     null: u64,
@@ -22,10 +31,11 @@ struct Gdt {
 // - CS = Selector Base + 16 = 0x28 | RPL=3 = 0x2B (Index 5, User Code)
 static GDT: Gdt = Gdt {
     null: 0,
-    kernel_code: 0x00af9a000000ffff, // Kernel Code Segment (64-bit, Ring 0)
-    kernel_data: 0x00cf92000000ffff, // Kernel Data Segment (64-bit, Ring 0)
+    // Accessed bit được bật sẵn để CPU không phải ghi vào GDT nằm trong trang read-only.
+    kernel_code: 0x00af9b000000ffff, // Kernel Code Segment (64-bit, Ring 0)
+    kernel_data: 0x00cf93000000ffff, // Kernel Data Segment (64-bit, Ring 0)
     user_data_dummy: 0,
-    user_data: 0x00cff2000000ffff, // User Data Segment (64-bit, Ring 3)
+    user_data: 0x00cff3000000ffff, // User Data Segment (64-bit, Ring 3)
     user_code: 0x00affb000000ffff, // User Code Segment (64-bit, Ring 3)
 };
 
@@ -33,31 +43,47 @@ static GDT: Gdt = Gdt {
 ///
 /// # Safety
 /// Hàm này thay đổi bảng phân đoạn của CPU, yêu cầu CPU ở trạng thái đặc quyền Ring 0.
+///
+/// Preconditions:
+/// - CPU đang chạy ở long mode do Limine bàn giao.
+/// - Stack hiện tại hợp lệ để thực hiện `push` và `retfq`.
+///
+/// Postconditions:
+/// - GDTR trỏ tới GDT tĩnh của kernel.
+/// - CS được nạp lại về selector kernel code `0x08`.
+/// - Các thanh ghi đoạn dữ liệu dùng selector kernel data `0x10`.
+///
+/// Memory safety assumptions:
+/// - Địa chỉ của `GDT` được Limine map trong không gian địa chỉ kernel.
+/// - Descriptor đã bật Accessed bit để CPU không ghi vào trang read-only khi nạp selector.
+///
+/// CPU state assumptions:
+/// - Interrupt chưa được bật trong khi thay đổi GDT.
 pub unsafe fn init() {
-    let base = &GDT as *const _ as u64;
-    let limit = (core::mem::size_of::<Gdt>() - 1) as u16;
+    let descriptor = DescriptorTablePointer {
+        limit: (core::mem::size_of::<Gdt>() - 1) as u16,
+        base: &GDT as *const _ as u64,
+    };
 
-    // SAFETY: Dựng descriptor trực tiếp trên stack để nạp GDT an toàn, sau đó reload CS và các segment registers.
+    // SAFETY: `descriptor` trỏ tới GDT tĩnh hợp lệ. Far return nạp lại CS để selector đang cache
+    // của Limine không còn được dùng sau khi kernel thay GDTR.
     asm!(
-        "sub rsp, 16",
-        "mov [rsp + 2], {base}",
-        "mov [rsp], {limit:x}",
-        "lgdt [rsp]",
-        "add rsp, 16",
-
-        "push 0x08",           // CS selector trong GDT mới
-        "lea rax, [2f]",       // Địa chỉ nhãn 2
+        "lgdt [{gdt_descriptor}]",
+        "push {kernel_code}",
+        "lea rax, [rip + 2f]",
         "push rax",
-        "retfq",               // Far return để reload CS và RIP
+        "retfq",
         "2:",
-        "mov ax, 0x10",        // Data segment selector trong GDT mới
+
+        "mov ax, {kernel_data}",
         "mov ds, ax",
         "mov es, ax",
         "mov ss, ax",
         "mov fs, ax",
         "mov gs, ax",
-        base = in(reg) base,
-        limit = in(reg) limit,
+        gdt_descriptor = in(reg) &descriptor,
+        kernel_code = const KERNEL_CODE_SELECTOR,
+        kernel_data = const KERNEL_DATA_SELECTOR,
         out("rax") _
     );
 }

@@ -7,6 +7,7 @@ pub mod scheduler;
 pub mod task;
 
 use crate::fs::kernel_file::{kernel_open_file, kernel_read};
+use crate::memory::frame::PAGE_SIZE;
 use crate::memory::paging::{map_user_page, FLAG_USER, FLAG_WRITABLE};
 use crate::memory::user_space::UserAddressSpace;
 use crate::process::elf::load_elf64;
@@ -66,14 +67,14 @@ pub fn spawn_init(path: &str) -> Result<u32, InitError> {
     let l4_phys = address_space.l4_table_phys();
 
     // 4. Chuẩn bị stack ảo cho userspace (16 KiB - 4 trang ảo tại đỉnh bộ nhớ người dùng)
-    let user_stack_limit = 0x0000_7FFF_FFFF_E000u64; // Dưới stack top 8 KiB
     let user_stack_top = 0x0000_7FFF_FFFF_F000u64; // Căn lề trang
-    let num_stack_pages = 4; // 16 KiB stack
+    let num_stack_pages = 4u64; // 16 KiB stack
+    let user_stack_base = user_stack_top - (num_stack_pages * PAGE_SIZE as u64);
     let hhdm = crate::memory::frame::hhdm_offset().map_err(|_| InitError::NoHhdm)?;
 
     for i in 0..num_stack_pages {
         let frame = crate::memory::frame::allocate_frame().map_err(|_| InitError::MemoryError)?;
-        let page_vaddr = user_stack_limit + (i as u64 * 4096);
+        let page_vaddr = user_stack_base + (i * PAGE_SIZE as u64);
 
         // Ánh xạ stack ảo sang frame vật lý với cờ USER + WRITABLE
         unsafe {
@@ -149,7 +150,7 @@ pub unsafe fn enter_userspace(_pid: u32) -> ! {
     // 3. Chuẩn bị stack frame cho iretq
     let ss = 0x23u64; // User Data Selector (Index 4, RPL=3)
     let cs = 0x2Bu64; // User Code Selector (Index 5, RPL=3)
-    let rflags = 0x202u64; // Bật cờ IF (bit 9) để nhận ngắt và cờ mặc định (bit 1)
+    let rflags = 0x02u64; // Tắt cờ IF (bit 9) để không nhận ngắt ở Ring 3 (tránh crash do thiếu TSS ở Milestone 6)
 
     // Lấy RSP hiện tại của kernel để lưu làm KERNEL_RSP
     // Khi userspace gọi syscall, CPU tự động chuyển sang stack này

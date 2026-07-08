@@ -21,7 +21,7 @@ if [ -n "${KERNEL_FEATURES:-}" ]; then
 fi
 
 echo "[AXIOMOS] Biên dịch Userspace Init..."
-RUSTFLAGS="-C link-arg=-Tlinker.ld" cargo +nightly build --manifest-path userspace/init/Cargo.toml --target x86_64-unknown-none \
+RUSTFLAGS="-C relocation-model=static -C link-arg=-no-pie -C link-arg=-Tlinker.ld" cargo +nightly build --manifest-path userspace/init/Cargo.toml --target x86_64-unknown-none \
     -Zbuild-std=core
 
 echo "[AXIOMOS] Biên dịch Kernel..."
@@ -80,4 +80,3 @@ chmod +x assets/limine/limine
 assets/limine/limine bios-install target/axiomOS.img
 
 echo "[AXIOMOS] Đóng gói đĩa ảo target/axiomOS.img thành công!"
-

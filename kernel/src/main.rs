@@ -44,9 +44,12 @@ pub extern "C" fn _start() -> ! {
         serial_println!("[AXIOMOS] Framebuffer console unavailable: no framebuffer");
     }
 
-    // Khởi tạo IDT và PIC
-    // SAFETY: Các lệnh này thay đổi bảng ngắt của CPU ở mức đặc quyền Ring 0
+    // Khởi tạo GDT, IDT và PIC
+    // SAFETY: Các lệnh này thay đổi bảng phân đoạn và bảng ngắt của CPU ở mức đặc quyền Ring 0
     unsafe {
+        arch::x86_64::gdt::init();
+        logging::boot("GDT initialized");
+
         arch::x86_64::idt::init();
         logging::boot("IDT initialized");
 

@@ -55,6 +55,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Thêm Spec 011, ADR 004 và logging facade nội bộ cho Milestone 4 với `LogRecord`, level, subsystem và mirror framebuffer tùy chọn.
 
 ### Fixed
+- Sửa lỗi QEMU pause do triple fault ngay sau khi load kernel bằng cách bật sẵn Accessed bit cho GDT descriptors, nạp lại CS về kernel selector `0x08` sau `lgdt`, và đăng ký IDT bằng selector kernel cố định.
+- Sửa lỗi userspace init triple fault do các `PT_LOAD` segment của ELF chồng cùng page `0x400000`; init hiện build dạng ELF `EXEC` static/no-pie và căn segment theo page 4 KiB.
+- Sửa lỗi mapping stack userspace 16 KiB vượt qua biên canonical thấp và ghi đè L4 entry kernel trong page table của init.
 - Sửa lỗi tranh chấp và RefCell already borrowed trong các unit test của module logging bằng cách tối ưu hóa scope của lock guard.
 - Sửa cấu hình CI chỉ chạy push trên main nhằm loại bỏ trùng lặp workflow kiểm thử khi đẩy commit lên các nhánh feature đang có PR mở.
 - Sửa cấu hình CodeRabbit để tự động review cả PR nháp (Draft PR) trên mọi nhánh.
