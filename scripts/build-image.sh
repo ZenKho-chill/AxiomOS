@@ -20,14 +20,15 @@ if [ -n "${KERNEL_FEATURES:-}" ]; then
     KERNEL_FEATURE_ARGS=(--features "$KERNEL_FEATURES")
 fi
 
+echo "[AXIOMOS] Biên dịch Userspace Init..."
+RUSTFLAGS="-C link-arg=-Tlinker.ld" cargo +nightly build --manifest-path userspace/init/Cargo.toml --target x86_64-unknown-none \
+    -Zbuild-std=core
+
+echo "[AXIOMOS] Biên dịch Kernel..."
 cargo +nightly build --manifest-path kernel/Cargo.toml --target x86_64-unknown-none \
     "${KERNEL_FEATURE_ARGS[@]}" \
     -Zbuild-std=core,alloc,compiler_builtins \
     -Zbuild-std-features=compiler-builtins-mem
-
-echo "[AXIOMOS] Biên dịch Userspace Init..."
-RUSTFLAGS="-C link-arg=-Tlinker.ld" cargo +nightly build --manifest-path userspace/init/Cargo.toml --target x86_64-unknown-none \
-    -Zbuild-std=core
 
 # 3. Tạo file image trống 64MB
 echo "[AXIOMOS] Tạo file đĩa ảo 64MB trống..."
